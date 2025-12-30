@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block header_title %}Assistente Tecnico Normativo{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-col space-y-6">
+
+    {% if not response %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-8 text-center">
+        <div
+            class="w-16 h-16 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Benvenuto in MaterialComplianceHelper</h1>
+        <p class="text-slate-500 max-w-lg mx-auto">
+            Utilizza l'intelligenza artificiale per analizzare quesiti normativi, verificare CAM, LEED e schede
+            tecniche.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+        style="min-height: 60vh;">
+
+        <div class="flex-1 p-6 overflow-y-auto bg-slate-50/50 space-y-6">
+
+            {% if user_query %}
+            <div class="flex justify-end">
+                <div
+                    class="bg-slate-800 text-white rounded-2xl rounded-tr-none px-5 py-3 max-w-3xl shadow-md text-sm leading-relaxed">
+                    {{ user_query }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div id="loading-indicator" class="hidden flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center">
+                    <div class="loader ease-linear rounded-full border-2 border-t-2 border-gray-200 h-4 w-4"></div>
+                </div>
+                <div class="text-slate-500 text-sm py-2">L'AI sta analizzando la richiesta...</div>
+            </div>
+
+            {% if response %}
+            <div class="flex justify-start">
+                <div class="flex items-start space-x-3 max-w-4xl">
+                    <div
+                        class="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex-shrink-0 flex items-center justify-center text-xs font-bold mt-1">
+                        AI
+                    </div>
+                    <div
+                        class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-6 py-5 shadow-sm text-slate-700 leading-relaxed text-sm markdown-body">
+                        {{ response | safe }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div class="p-4 bg-white border-t border-slate-100">
+            <form action="/dashboard" method="post" class="relative" onsubmit="showLoading()">
+                <textarea name="user_query"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-16 py-4 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all resize-none shadow-inner text-slate-700 placeholder-slate-400"
+                    rows="2" placeholder="Scrivi qui la tua domanda tecnica..." required></textarea>
+
+                <button type="submit"
+                    class="absolute right-3 top-3 bottom-3 bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-lg transition-colors shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+            <div class="text-center mt-2">
+                <span class="text-xs text-slate-400">GiusHelper può commettere errori. Verifica sempre le normative
+                    ufficiali.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showLoading() {
+        document.getElementById('loading-indicator').classList.remove('hidden');
+    }
+</script>
+
+{% endblock %}

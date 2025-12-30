@@ -1,0 +1,14 @@
+fastapi[standard]
+uvicorn
+jinja2
+passlib[bcrypt]
+python-multipart
+bcrypt==4.0.1
+pydantic
+sqlalchemy
+psycopg2-binary
+python-dotenv
+langchain
+tavily-python
+pdfplumber
+vllm
