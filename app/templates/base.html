@@ -3,105 +3,95 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GiusHelper | Fuller STP</title>
+    <title>Fuller STP | Gestione Progetti</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            50: '#ecfdf5', // Smeraldo chiarissimo
-                            100: '#d1fae5',
-                            500: '#10b981', // Smeraldo Fuller
-                            600: '#059669',
-                            900: '#064e3b',
-                        }
-                    }
+                    colors: { brand: { 500: '#10b981', 600: '#059669', 900: '#064e3b' }, slate: { 850: '#1e293b', 900: '#0f172a' } }
                 }
             }
         }
     </script>
-    <style>
-        /* Spinner per il caricamento */
-        .loader {
-            border-top-color: #10b981;
-            -webkit-animation: spinner 1.5s linear infinite;
-            animation: spinner 1.5s linear infinite;
-        }
-
-        @keyframes spinner {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
 </head>
 
 <body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex overflow-hidden">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-20 hidden md:flex">
-        <div class="h-16 flex items-center px-6 border-b border-slate-800 font-bold text-xl tracking-wide">
-            <span class="text-brand-500 mr-2">Gius</span>Helper
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20 hidden md:flex">
+
+        <div class="h-20 flex flex-col justify-center px-6 border-b border-slate-800 bg-slate-950">
+            <div class="font-bold text-white text-sm truncate">{{ user.username }}</div>
+            <div class="text-xs text-slate-500 truncate" title="{{ user.email }}">{{ user.email }}</div>
         </div>
 
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <a href="/dashboard"
-                class="flex items-center px-4 py-3 bg-slate-800 text-brand-500 rounded-lg transition-colors">
-                <i class="fa-solid fa-robot w-6"></i>
-                <span class="font-medium">Assistente AI</span>
-            </a>
+        <nav class="flex-1 px-3 py-6 space-y-1">
+
+            {% if active_project %}
+            <div class="px-3 mb-4">
+                <a href="/projects" class="text-xs text-brand-500 hover:underline"><i
+                        class="fa-solid fa-arrow-left"></i> Torna ai progetti</a>
+            </div>
+            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Crediti {{
+                active_project.protocol }}</p>
+
             <a href="#"
-                class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
-                <i class="fa-solid fa-file-pdf w-6 group-hover:text-brand-500"></i>
-                <span class="font-medium">Analisi Documenti</span>
+                class="flex items-center px-3 py-2.5 bg-slate-800 text-white rounded-lg border-l-4 border-brand-500 transition-colors">
+                <i class="fa-solid fa-leaf w-6 text-center text-brand-500"></i>
+                <span class="ml-2 font-medium text-sm">MR: EPD</span>
             </a>
+
             <a href="#"
-                class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
-                <i class="fa-solid fa-leaf w-6 group-hover:text-brand-500"></i>
-                <span class="font-medium">Certificazioni</span>
+                class="flex items-center px-3 py-2.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-lg transition-colors cursor-not-allowed opacity-50">
+                <i class="fa-solid fa-recycle w-6 text-center"></i>
+                <span class="ml-2 font-medium text-sm">MR: Sourcing</span>
             </a>
+
+            {% else %}
+            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Gestione</p>
+
+            <a href="/projects"
+                class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors {% if request.url.path == '/projects' %}bg-slate-800 text-white{% endif %}">
+                <i class="fa-solid fa-folder-open w-6 text-center text-slate-400"></i>
+                <span class="ml-2 font-medium">Apri Progetto</span>
+            </a>
+
+            <a href="/projects/new"
+                class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition-colors {% if request.url.path == '/projects/new' %}bg-slate-800 text-white{% endif %}">
+                <i class="fa-solid fa-plus-circle w-6 text-center text-slate-400"></i>
+                <span class="ml-2 font-medium">Nuovo Progetto</span>
+            </a>
+            {% endif %}
+
         </nav>
 
-        <div class="p-4 border-t border-slate-800">
-            <a href="/logout"
-                class="flex items-center px-4 py-2 text-slate-400 hover:text-red-400 transition-colors text-sm">
-                <i class="fa-solid fa-sign-out-alt w-6"></i>
-                Logout
+        <div class="p-4 border-t border-slate-800 bg-slate-950">
+            <a href="/logout" class="flex items-center text-slate-500 hover:text-red-400 transition-colors text-sm">
+                <i class="fa-solid fa-right-from-bracket w-6"></i> Logout
             </a>
         </div>
     </aside>
 
     <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
-
-        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
-            <h2 class="text-lg font-semibold text-slate-700">
-                {% block header_title %}Dashboard{% endblock %}
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
+            <h2 class="text-lg font-bold text-slate-800">
+                {% if active_project %}
+                <span class="text-slate-400 font-normal mr-2">Progetto:</span> {{ active_project.name }}
+                {% else %}
+                {% block page_title %}Dashboard{% endblock %}
+                {% endif %}
             </h2>
-            <div class="flex items-center space-x-4">
-                <div
-                    class="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-sm">
-                    A
-                </div>
-            </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <main class="flex-1 overflow-y-auto p-8 bg-slate-50">
             <div class="max-w-5xl mx-auto">
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
-
 </body>
 
 </html>

@@ -82,5 +82,10 @@
         document.getElementById('loading-indicator').classList.remove('hidden');
     }
 </script>
+<div style="background: #eee; padding: 10px; margin-bottom: 20px;">
+    <strong>Utente:</strong> {{ user.username }} <br>
+    <strong>Email:</strong> {{ user.email }} <br>
+    <strong>Licenza:</strong> {{ user.user_code }}
+</div>
 
 {% endblock %}

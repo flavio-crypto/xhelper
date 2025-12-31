@@ -12,3 +12,5 @@ langchain
 tavily-python
 pdfplumber
 vllm
+supabase
+python-dotenv

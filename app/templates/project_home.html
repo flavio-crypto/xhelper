@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center py-10">
+    <h2 class="text-3xl font-bold text-slate-800 mb-2">Area di Lavoro LEED</h2>
+    <p class="text-slate-500 mb-10">Seleziona un'operazione per il credito MR: EPD</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+
+        <a href="#"
+            class="group bg-white border border-slate-200 rounded-2xl p-8 hover:border-brand-500 hover:shadow-xl transition-all text-left">
+            <div
+                class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+                <i class="fa-solid fa-file-circle-check"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Verifica Materiale</h3>
+            <p class="text-slate-500 text-sm">Carica una scheda tecnica o EPD e analizza la conformità normativa con
+                l'AI.</p>
+        </a>
+
+        <a href="#"
+            class="group bg-white border border-slate-200 rounded-2xl p-8 hover:border-brand-500 hover:shadow-xl transition-all text-left">
+            <div
+                class="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
+                <i class="fa-solid fa-search"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Cerca Materiale</h3>
+            <p class="text-slate-500 text-sm">Esplora il database interno per trovare materiali già validati e conformi.
+            </p>
+        </a>
+
+    </div>
+</div>
+{% endblock %}

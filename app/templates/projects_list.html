@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block page_title %}I tuoi Progetti{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    {% if projects %}
+    {% for p in projects %}
+    <a href="/projects/{{ p.id }}"
+        class="block bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg hover:border-brand-500 transition-all group">
+        <div class="flex justify-between items-start mb-4">
+            <div
+                class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                {{ p.name[0] | upper }}
+            </div>
+            <span class="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase">{{ p.protocol
+                }}</span>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800 mb-1 group-hover:text-brand-600">{{ p.name }}</h3>
+        <p class="text-sm text-slate-500"><i class="fa-solid fa-location-dot mr-1"></i> {{ p.location }}</p>
+    </a>
+    {% endfor %}
+    {% else %}
+    <div class="col-span-3 text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+        <div class="text-slate-300 text-6xl mb-4"><i class="fa-solid fa-folder-open"></i></div>
+        <h3 class="text-xl font-medium text-slate-600">Nessun progetto trovato</h3>
+        <p class="text-slate-400 mb-6">Inizia creando il tuo primo progetto di compliance.</p>
+        <a href="/projects/new" class="bg-brand-600 text-white px-6 py-2 rounded-lg hover:bg-brand-700">Crea
+            Progetto</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
