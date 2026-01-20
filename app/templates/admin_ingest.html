@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block page_title %}Ingestion & Validazione Materiale{% endblock %}
+
+{% block content %}
+
+{% if not analysis_data %}
+<div class="max-w-2xl mx-auto mt-10">
+    <div class="bg-white p-8 rounded-2xl shadow-lg border border-purple-100 text-center">
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">Carica Scheda Tecnica</h2>
+        <p class="text-slate-500 mb-6">Produttore selezionato: <strong class="text-purple-700">{{ manufacturer.name
+                }}</strong></p>
+
+        <form action="/admin/ingest" method="post" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="manufacturer_id" value="{{ manufacturer.id }}">
+
+            <div
+                class="border-2 border-dashed border-slate-300 rounded-xl p-10 hover:border-purple-500 transition-colors cursor-pointer relative">
+                <input type="file" name="file" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3"></i>
+                <p class="text-sm text-slate-500">Clicca o trascina il PDF qui</p>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95">
+                Avvia Analisi AI
+            </button>
+        </form>
+    </div>
+</div>
+{% else %}
+
+<div class="flex h-[calc(100vh-140px)] -m-8">
+    <div class="w-1/2 bg-slate-800 border-r border-slate-700 relative">
+        <iframe src="data:application/pdf;base64,{{ pdf_base64 }}" class="w-full h-full" frameborder="0"></iframe>
+    </div>
+
+    <div class="w-1/2 bg-white overflow-y-auto p-8">
+        <form action="/admin/save-material" method="post">
+            <input type="hidden" name="manufacturer_id" value="{{ manufacturer.id }}">
+
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-slate-800">Validazione Dati</h2>
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">BOZZA AI</span>
+            </div>
+
+            <div class="space-y-4 mb-8">
+                <h3 class="text-sm font-bold text-slate-400 uppercase border-b border-slate-100 pb-2">Anagrafica
+                    Materiale</h3>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Nome Commerciale</label>
+                    <input type="text" name="material_name" value="{{ analysis_data.material_name }}"
+                        class="w-full p-2 border border-slate-300 rounded focus:border-purple-500 font-bold text-slate-900">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Categoria</label>
+                        <input type="text" name="category" value="{{ analysis_data.category }}"
+                            class="w-full p-2 border border-slate-300 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Codice Prodotto</label>
+                        <input type="text" name="tech_code" value="N/D"
+                            class="w-full p-2 border border-slate-300 rounded">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Descrizione</label>
+                    <textarea name="description" rows="3"
+                        class="w-full p-2 border border-slate-300 rounded text-sm">{{ analysis_data.description }}</textarea>
+                </div>
+            </div>
+
+            <div class="space-y-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <h3
+                    class="text-sm font-bold text-purple-600 uppercase border-b border-purple-100 pb-2 flex items-center">
+                    <i class="fa-solid fa-list-check mr-2"></i> Dati Compliance
+                </h3>
+
+                <p class="text-xs text-slate-500 mb-4">L'AI ha estratto questi valori. Correggi o aggiungi se
+                    necessario.</p>
+
+                {% for key, value in analysis_data.technical_properties.items() %}
+                <div class="grid grid-cols-3 gap-2 items-center">
+                    <label class="text-sm text-slate-600 font-medium col-span-1 truncate" title="{{ key }}">{{ key
+                        }}</label>
+                    <input type="text" name="prop_key_{{ loop.index }}" value="{{ key }}" type="hidden" class="hidden">
+                    <input type="text" name="prop_val_{{ loop.index }}" value="{{ value }}"
+                        class="col-span-2 p-2 border border-white bg-white shadow-sm rounded text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                </div>
+                {% endfor %}
+
+                <div class="pt-4 border-t border-slate-200 mt-4">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Aggiungi parametro
+                        manuale</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="text" placeholder="Es. VOC Emission" class="col-span-1 p-2 border rounded text-sm">
+                        <input type="text" placeholder="Es. A+" class="col-span-2 p-2 border rounded text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-200 flex space-x-4">
+                <button type="button"
+                    class="flex-1 py-3 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 font-medium">Scarta</button>
+                <button type="submit"
+                    class="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-lg">
+                    <i class="fa-solid fa-check mr-2"></i> Valida e Pubblica
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

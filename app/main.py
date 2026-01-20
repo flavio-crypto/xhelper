@@ -167,3 +167,108 @@ async def view_project(request: Request, project_id: str):
 async def test_llm():
     response = ask_qwen("Dimmi ciao in italiano")
     return {"risposta": response}
+
+    import base64
+# Assicurati di importare i nuovi moduli
+from app.database import supabase # Import generico
+
+# --- ROTTE ADMIN / DATA FACTORY ---
+
+@app.get("/admin/manufacturers", response_class=HTMLResponse)
+async def admin_manufacturers(request: Request):
+    if not get_current_user(request): return RedirectResponse("/")
+    
+    # Recupera lista produttori
+    res = supabase.table("manufacturers").select("*").order("name").execute()
+    
+    return templates.TemplateResponse("admin_manufacturers.html", {
+        "request": request, 
+        "manufacturers": res.data
+    })
+
+@app.post("/admin/manufacturers")
+async def add_manufacturer(request: Request, name: str = Form(...), website: str = Form(None)):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    supabase.table("manufacturers").insert({"name": name, "website": website}).execute()
+    return RedirectResponse("/admin/manufacturers", status_code=302)
+
+@app.get("/admin/ingest", response_class=HTMLResponse)
+async def admin_ingest_page(request: Request, manufacturer_id: str):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    # Recupera info produttore per il titolo
+    man_res = supabase.table("manufacturers").select("*").eq("id", manufacturer_id).single().execute()
+    
+    return templates.TemplateResponse("admin_ingest.html", {
+        "request": request,
+        "manufacturer": man_res.data,
+        "analysis_data": None # Nessuna analisi ancora avviata
+    })
+
+@app.post("/admin/ingest", response_class=HTMLResponse)
+async def admin_ingest_process(
+    request: Request, 
+    manufacturer_id: str = Form(...),
+    file: UploadFile = File(...)
+):
+    user = get_current_user(request)
+    
+    # 1. Leggi PDF
+    contents = await file.read()
+    pdf_file = io.BytesIO(contents)
+    reader = PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages: text += page.extract_text()
+    
+    # 2. Converti PDF in base64 per mostrarlo nell'iframe (Senza salvarlo su disco per ora)
+    pdf_base64 = base64.b64encode(contents).decode('utf-8')
+    
+    # 3. Chiedi all'AI di estrarre i dati
+    extraction_prompt = (
+        f"Analizza la scheda tecnica:\n{text[:15000]}\n"
+        f"Estrai JSON: manufacturer_name (ignora, lo so già), material_name, category, description, "
+        f"technical_properties (cerca valori numerici, conducibilità, riciclato, certificazioni)."
+    )
+    
+    raw_response = ask_qwen(extraction_prompt, json_mode=True)
+    cleaned_json = raw_response.replace("```json", "").replace("```", "").strip()
+    
+    try:
+        data_dict = json.loads(cleaned_json)
+    except:
+        data_dict = {"material_name": "Errore AI", "description": raw_response, "technical_properties": {}}
+
+    # Recupera info produttore
+    man_res = supabase.table("manufacturers").select("*").eq("id", manufacturer_id).single().execute()
+
+    return templates.TemplateResponse("admin_ingest.html", {
+        "request": request,
+        "manufacturer": man_res.data,
+        "analysis_data": data_dict,
+        "pdf_base64": pdf_base64 # Passiamo il PDF da visualizzare
+    })
+
+@app.post("/admin/save-material")
+async def save_validated_material(
+    request: Request,
+    manufacturer_id: str = Form(...),
+    material_name: str = Form(...),
+    category: str = Form(...),
+    description: str = Form(...),
+    # Nota: per le proprietà dinamiche servirebbe una logica più complessa di parsing del form,
+    # per ora salviamo i base data per farti vedere il flusso.
+):
+    # Salvataggio nel DB con stato 'published'
+    data = {
+        "manufacturer_id": manufacturer_id,
+        "name": material_name,
+        "category": category,
+        "description": description,
+        "status": "published"
+    }
+    supabase.table("materials").insert(data).execute()
+    
+    return RedirectResponse("/admin/manufacturers", status_code=302)
