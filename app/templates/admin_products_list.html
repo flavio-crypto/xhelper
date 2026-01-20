@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block page_title %}Gestione Materiali{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <form action="/admin/products" method="get" class="flex flex-col md:flex-row gap-4 items-end">
+            
+            <div class="flex-1 w-full">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cerca Nome</label>
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" name="q" value="{{ filters.q }}" placeholder="Es. Pannello lana di roccia..." 
+                        class="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:border-brand-500">
+                </div>
+            </div>
+
+            <div class="w-full md:w-48">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label>
+                <select name="category" class="w-full px-3 py-2 border rounded-lg bg-white outline-none">
+                    <option value="">Tutte</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="w-full md:w-40">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Stato</label>
+                <select name="status" class="w-full px-3 py-2 border rounded-lg bg-white outline-none">
+                    <option value="">Tutti</option>
+                    <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>Bozze AI</option>
+                    <option value="valid" {% if filters.status == 'valid' %}selected{% endif %}>Validati</option>
+                </select>
+            </div>
+
+            <button type="submit" class="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-700 transition-colors">
+                Filtra
+            </button>
+            
+            <a href="/admin/products" class="text-slate-500 text-sm hover:underline px-2">Reset</a>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                    <th class="px-6 py-4">Stato</th>
+                    <th class="px-6 py-4">Produttore</th>
+                    <th class="px-6 py-4">Materiale</th>
+                    <th class="px-6 py-4">Categoria</th>
+                    <th class="px-6 py-4 text-right">Azioni</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-sm">
+                {% for p in products %}
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4">
+                        {% if p.is_validated %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Validato
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Bozza AI
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 font-medium text-slate-900">{{ p.companies.name }}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800">{{ p.name }}</div>
+                        <div class="text-xs text-slate-400 truncate max-w-xs">{{ p.description }}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500">{{ p.category }}</td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <a href="/admin/products/{{ p.id }}" class="text-brand-600 font-semibold hover:underline">Modifica</a>
+                        <span class="text-slate-300">|</span>
+                        <a href="/admin/products/delete/{{ p.id }}" 
+                           onclick="return confirm('Eliminare definitivamente questo materiale?')"
+                           class="text-red-500 hover:text-red-700">
+                           <i class="fa-solid fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                        Nessun prodotto trovato con questi filtri.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

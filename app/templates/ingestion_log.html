@@ -1,0 +1,36 @@
+<div class="space-y-2 animate-pulse-once">
+    <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Log Operazioni</h3>
+    
+    {% for res in results %}
+        {% if res.status == 'success' %}
+        <div class="p-3 bg-green-50 border-l-4 border-green-500 text-green-800 rounded-r text-xs font-mono flex items-center shadow-sm">
+            <i class="fa-solid fa-check-circle mr-3 text-green-600"></i>
+            <div>
+                <span class="font-bold">{{ res.product }}</span>
+                <span class="opacity-75"> — Inserito in bozza</span>
+            </div>
+        </div>
+
+        {% elif res.status == 'skipped' %}
+        <div class="p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r text-xs font-mono flex items-center shadow-sm">
+            <i class="fa-solid fa-forward mr-3 text-yellow-600"></i>
+            <div>
+                <span class="font-bold">{{ res.product }}</span>
+                <span class="opacity-75"> — {{ res.reason }}</span>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="p-3 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r text-xs font-mono flex items-center shadow-sm">
+            <i class="fa-solid fa-triangle-exclamation mr-3 text-red-600"></i>
+            <div>
+                <span class="font-bold">Errore</span>
+                <span class="opacity-75"> — {{ res.reason }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="text-slate-400 text-xs italic text-center py-4">Nessun risultato restituito dal motore.</div>
+    {% endfor %}
+</div>

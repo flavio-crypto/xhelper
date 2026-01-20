@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block page_title %}Modifica Materiale{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto pb-20">
+
+    <div class="flex items-center justify-between mb-6">
+        <a href="/admin/products" class="text-slate-500 hover:text-slate-800 text-sm font-medium transition-colors">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Torna alla lista
+        </a>
+    </div>
+
+    <form action="/admin/products/save" method="post" id="mainForm" class="space-y-6">
+        <input type="hidden" name="id" value="{{ product.id }}">
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 class="text-lg font-bold text-slate-800">Dati Anagrafici</h2>
+                <label class="flex items-center cursor-pointer relative">
+                    <input type="checkbox" name="is_validated" value="true" class="sr-only peer" {% if product.is_validated %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                    <span class="ml-3 text-sm font-bold text-slate-700">Validato</span>
+                </label>
+            </div>
+
+            <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Commerciale</label>
+                    <input type="text" name="name" value="{{ product.name }}" required class="w-full px-4 py-2 border border-slate-300 rounded-lg font-bold text-lg text-slate-800">
+                </div>
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produttore</label>
+                    <select name="company_id" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        {% for comp in companies %}
+                        <option value="{{ comp.id }}" {% if product.company_id == comp.id %}selected{% endif %}>{{ comp.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label>
+                    <select name="category" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if product.category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                        <option value="Altro" {% if product.category == 'Altro' %}selected{% endif %}>Altro</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descrizione</label>
+                    <textarea name="description" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-600">{{ product.description }}</textarea>
+                </div>
+
+                <div class="col-span-2 border-t border-slate-100 pt-4 mt-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Scheda Tecnica</label>
+                        <button type="button" onclick="openUploadModal('datasheet')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded border border-slate-300 font-bold">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Carica PDF
+                        </button>
+                    </div>
+
+                    <div class="mt-2 flex items-center gap-4">
+                        {% if product.tech_file_path %}
+                            <a href="{{ product.tech_file_path }}" target="_blank" class="flex items-center px-4 py-2 bg-purple-50 text-purple-700 rounded-lg border border-purple-200 text-sm font-bold hover:bg-purple-100">
+                                <i class="fa-solid fa-file-pdf mr-2"></i> Apri Scheda Archiviata
+                            </a>
+                        {% elif product.url_technical_sheet %}
+                             <a href="{{ product.url_technical_sheet }}" target="_blank" class="flex items-center px-4 py-2 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 text-sm hover:bg-slate-100">
+                                <i class="fa-solid fa-link mr-2"></i> Link Web Esterno
+                            </a>
+                        {% else %}
+                            <span class="text-slate-400 text-sm italic">Nessun documento presente</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                <div class="px-6 py-3 border-b border-slate-100 bg-green-50/50 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-leaf text-green-600 mr-2"></i>
+                        <h3 class="font-bold text-slate-800 text-sm">EPD</h3>
+                    </div>
+                    <button type="button" onclick="openUploadModal('epd')" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-50 font-bold text-slate-600">
+                        <i class="fa-solid fa-upload"></i> Carica
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    {% if product.epd_file_path %}
+                    <div class="flex items-center justify-between bg-green-50 p-2 rounded border border-green-100">
+                        <div class="flex items-center text-xs text-green-800 font-medium">
+                            <i class="fa-solid fa-check-circle mr-2"></i> PDF Archiviato
+                        </div>
+                        <a href="{{ product.epd_file_path }}" target="_blank" class="text-xs underline text-green-700 font-bold">Apri</a>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Scadenza</label>
+                        <input type="date" name="epd_expiration" value="{{ product.epd_expiration or '' }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                <div class="px-6 py-3 border-b border-slate-100 bg-blue-50/50 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-wind text-blue-600 mr-2"></i>
+                        <h3 class="font-bold text-slate-800 text-sm">Emissioni (VOC)</h3>
+                    </div>
+                    <button type="button" onclick="openUploadModal('emission')" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-50 font-bold text-slate-600">
+                        <i class="fa-solid fa-upload"></i> Carica
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    {% if product.emission_file_path %}
+                    <div class="flex items-center justify-between bg-blue-50 p-2 rounded border border-blue-100">
+                        <div class="flex items-center text-xs text-blue-800 font-medium">
+                            <i class="fa-solid fa-check-circle mr-2"></i> PDF Archiviato
+                        </div>
+                        <a href="{{ product.emission_file_path }}" target="_blank" class="text-xs underline text-blue-700 font-bold">Apri</a>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Scadenza</label>
+                        <input type="date" name="emission_expiration" value="{{ product.emission_expiration or '' }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit md:col-span-2">
+                 <div class="px-6 py-3 border-b border-slate-100 bg-orange-50/50 flex items-center">
+                    <i class="fa-solid fa-recycle text-orange-600 mr-2"></i>
+                    <h3 class="font-bold text-slate-800 text-sm">Economia Circolare</h3>
+                </div>
+                <div class="p-6 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-slate-700 text-sm">Contenuto Riciclato</h4>
+                        <p class="text-xs text-slate-500 mt-1">Attiva se la scheda tecnica dichiara presenza di materiale riciclato.</p>
+                    </div>
+                    <label class="flex items-center cursor-pointer relative">
+                        <input type="checkbox" name="is_recycled" value="true" class="sr-only peer" {% if product.is_recycled %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                        <span class="ml-3 text-sm font-bold text-slate-700">Presente</span>
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex justify-end space-x-4 pt-4 border-t border-slate-200">
+             <a href="/admin/products/delete/{{ product.id }}" onclick="return confirm('Eliminare definitivamente?')" class="px-6 py-3 text-red-600 font-bold hover:bg-red-50 rounded-lg transition-colors"><i class="fa-solid fa-trash mr-2"></i> Elimina</a>
+            <button type="submit" class="px-8 py-3 bg-brand-600 text-white font-bold rounded-lg shadow-lg hover:bg-brand-700 transition-all">Salva Modifiche</button>
+        </div>
+    </form>
+</div>
+
+<div id="uploadModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 m-4">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Carica Documento</h3>
+        
+        <form action="/admin/products/upload_doc" method="post" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <input type="hidden" name="doc_type" id="modalDocType">
+            
+            <div class="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-brand-500 transition-colors bg-slate-50 relative">
+                <input type="file" name="file" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                <p class="text-sm text-slate-500 font-medium">Trascina qui o clicca per selezionare</p>
+                <p class="text-xs text-slate-400 mt-1">PDF consigliato</p>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-medium">Annulla</button>
+                <button type="submit" class="px-4 py-2 bg-brand-600 text-white rounded-lg font-bold hover:bg-brand-700">Avvia Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openUploadModal(type) {
+        document.getElementById('modalDocType').value = type;
+        const modal = document.getElementById('uploadModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+</script>
+{% endblock %}
