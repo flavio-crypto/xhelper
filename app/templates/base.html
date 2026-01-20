@@ -38,9 +38,11 @@
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Crediti {{
                 active_project.protocol }}</p>
 
-            <a href="#"
-                class="flex items-center px-3 py-2.5 bg-slate-800 text-white rounded-lg border-l-4 border-brand-500 transition-colors">
-                <i class="fa-solid fa-leaf w-6 text-center text-brand-500"></i>
+            <a href="/projects/{{ active_project.id }}/credits/mr_epd"
+                class="flex items-center px-3 py-2.5 rounded-lg border-l-4 transition-colors 
+                {% if 'mr_epd' in request.url.path %} bg-slate-800 text-white border-brand-500 {% else %} border-transparent text-slate-500 hover:text-white hover:bg-slate-800 {% endif %}">
+                <i
+                    class="fa-solid fa-leaf w-6 text-center {% if 'mr_epd' in request.url.path %}text-brand-500{% endif %}"></i>
                 <span class="ml-2 font-medium text-sm">MR: EPD</span>
             </a>
 
@@ -99,6 +101,8 @@
             </div>
         </main>
     </div>
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </body>
 
 </html>

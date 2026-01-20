@@ -12,13 +12,24 @@
                 }}</strong></p>
 
         <form action="/admin/ingest" method="post" enctype="multipart/form-data" class="space-y-4">
+
             <input type="hidden" name="manufacturer_id" value="{{ manufacturer.id }}">
 
             <div
-                class="border-2 border-dashed border-slate-300 rounded-xl p-10 hover:border-purple-500 transition-colors cursor-pointer relative">
-                <input type="file" name="file" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3"></i>
-                <p class="text-sm text-slate-500">Clicca o trascina il PDF qui</p>
+                class="border-2 border-dashed border-slate-300 rounded-xl p-10 hover:border-purple-500 transition-colors cursor-pointer relative group">
+
+                <input type="file" name="file" id="file_input" required
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    onchange="document.getElementById('file-label').innerText = this.files[0].name; document.getElementById('upload-icon').classList.add('text-purple-600');">
+
+                <div class="pointer-events-none text-center">
+                    <i id="upload-icon"
+                        class="fa-solid fa-cloud-arrow-up text-4xl text-slate-300 mb-3 group-hover:text-purple-400 transition-colors"></i>
+                    <p id="file-label" class="text-sm text-slate-500 font-medium truncate px-4">
+                        Clicca qui o trascina il PDF
+                    </p>
+                    <p class="text-xs text-slate-400 mt-2">Supporta PDF tecnici</p>
+                </div>
             </div>
 
             <button type="submit"

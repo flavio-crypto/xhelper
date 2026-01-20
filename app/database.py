@@ -1,6 +1,8 @@
 import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from typing import Optional
+import json
 
 # 1. Carica le variabili dal file .env
 load_dotenv()
@@ -28,6 +30,48 @@ def test_connection():
 # Se esegui questo file direttamente, fa un test
 if __name__ == "__main__":
     test_connection()
+
+
+
+
+def assign_material_to_project(project_id: str, material_id: str, credit_code: str):
+    """
+    Collega un materiale a un progetto. 
+    Se il collegamento esiste già, aggiunge il credit_code alla lista JSON esistente.
+    """
+    
+    # 1. Controlliamo se esiste già questo materiale nel progetto
+    existing = supabase.table("project_materials")\
+        .select("*")\
+        .eq("project_id", project_id)\
+        .eq("material_id", material_id)\
+        .execute()
+        
+    if existing.data:
+        # CASO A: Il materiale è già nel progetto. Aggiorniamo i crediti.
+        row_id = existing.data[0]['id']
+        current_credits = existing.data[0]['assigned_credits'] or []
+        
+        # Se il credito non è già nella lista, lo aggiungiamo
+        if credit_code not in current_credits:
+            current_credits.append(credit_code)
+            
+            supabase.table("project_materials")\
+                .update({"assigned_credits": current_credits})\
+                .eq("id", row_id)\
+                .execute()
+                
+    else:
+        # CASO B: È la prima volta che usiamo questo materiale nel progetto.
+        new_entry = {
+            "project_id": project_id,
+            "material_id": material_id,
+            "assigned_credits": [credit_code], # Creiamo la lista con il primo credito
+            "quantity": 1 # Default
+        }
+        supabase.table("project_materials").insert(new_entry).execute()
+        
+    return True
 
 # ... (codice esistente: import e connessione supabase) ...
 
@@ -63,3 +107,38 @@ def get_project_by_id(project_id: str):
     except Exception as e:
         print(f"❌ Errore recupero progetto {project_id}: {e}")
         return None
+
+def search_materials_db(category: str, epd_type: Optional[int], search_text: str):
+    """
+    Esegue la query su Supabase unendo Materials ed EPDs.
+    """
+    # Costruiamo la selezione base. 
+    # Vogliamo i dati del materiale, il nome del produttore, e i dati EPD.
+    # Sintassi: tabella_collegata(colonne)
+    select_query = "*, manufacturers(name), epds(*)"
+
+    # Se l'utente filtra per un TIPO SPECIFICO di EPD, dobbiamo usare "!inner"
+    # Questo forza la query a restituire solo materiali che HANNO quel tipo di EPD.
+    # Se non mettiamo !inner, ci ridarebbe il materiale con epds=[], che non vogliamo se filtriamo.
+    if epd_type is not None:
+        select_query = "*, manufacturers(name), epds!inner(*)"
+    
+    query = supabase.table("materials").select(select_query)
+    
+    # 1. Filtro Categoria (sulla tabella materials)
+    if category and category != "Tutte":
+        query = query.eq("category", category)
+    
+    # 2. Filtro Tipo EPD (sulla tabella epds collegata)
+    if epd_type is not None:
+        query = query.eq("epds.epd_type", epd_type)
+        
+    # 3. Filtro Testo (sulla tabella materials)
+    if search_text:
+        or_condition = f"name.ilike.%{search_text}%,description.ilike.%{search_text}%"
+        query = query.or_(or_condition)
+        
+    result = query.execute()
+    return result.data
+
+    

@@ -1,67 +1,56 @@
+import os
 from openai import OpenAI
-import sys
+from dotenv import load_dotenv
 
-# CONFIGURAZIONE
-# vLLM gira sulla porta 8000 di default.
-# Noi usiamo "localhost" perché siamo nello stesso container o macchina.
-VLLM_BASE_URL = "http://localhost:8000/v1"
-VLLM_API_KEY = "EMPTY"  # vLLM locale non richiede key reale
+load_dotenv()
 
-# Inizializza il client compatibile con OpenAI
+# Configurazione Client vLLM (RunPod)
 client = OpenAI(
-    base_url=VLLM_BASE_URL,
-    api_key=VLLM_API_KEY,
+    api_key="EMPTY",
+    base_url="http://localhost:8000/v1",
 )
 
-def get_active_model():
-    """
-    Recupera dinamicamente il nome del modello caricato in vLLM.
-    Evita di dover hardcodare stringhe come 'Qwen/Qwen2.5-...'
-    """
-    try:
-        models = client.models.list()
-        # Prende il primo modello disponibile (vLLM di solito ne serve uno alla volta)
-        model_id = models.data[0].id
-        print(f"INFO: Modello rilevato su vLLM: {model_id}")
-        return model_id
-    except Exception as e:
-        print(f"ATTENZIONE: Impossibile connettersi a vLLM sulla porta 8000. È acceso?\nErrore: {e}")
-        # Ritorna un valore di fallback, ma probabilmente la chiamata fallirà dopo
-        return "unknown-model"
+MODEL_NAME = "Qwen/Qwen2.5-32B-Instruct-AWQ" 
 
-# Carichiamo il nome del modello una volta sola all'avvio dell'app
-MODEL_NAME = get_active_model()
-
-def ask_qwen(query: str, system_prompt: str = None) -> str:
+def ask_qwen(query: str, system_prompt: str = None, json_mode: bool = False) -> str:
     """
-    Invia la richiesta al modello vLLM e restituisce il testo della risposta.
+    Invia la richiesta a vLLM.
+    - json_mode=True: Forza il sistema a comportarsi come un estrattore dati JSON rigoroso.
     """
     
-    # Prompt di sistema personalizzato per il tuo contesto (Fuller STP)
+    # Se attiviamo la modalità JSON ma non c'è un prompt specifico, ne usiamo uno di default
     if system_prompt is None:
-        system_prompt = (
-            "Sei un assistente tecnico esperto per Fuller STP srl. "
-            "Ti occupi di ingegneria energetica, sostenibilità (CAM, DNSH, LEED) "
-            "e verifica normativa. Rispondi in italiano in modo preciso e professionale."
-        )
+        if json_mode:
+            system_prompt = (
+                "Sei un analista dati esperto. Il tuo compito è estrarre informazioni strutturate dal testo fornito. "
+                "Rispondi ESCLUSIVAMENTE con un oggetto JSON valido. "
+                "Non aggiungere commenti, spiegazioni o blocchi di codice markdown (```json). "
+                "Restituisci solo il raw JSON string."
+            )
+        else:
+            system_prompt = (
+                "Sei un assistente tecnico esperto per Fuller STP srl. "
+                "Ti occupi di ingegneria energetica e sostenibilità. Rispondi in italiano in modo professionale."
+            )
 
     try:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query}
+        ]
+
+        # Parametri ottimizzati per l'estrazione dati
+        temperature = 0.1 if json_mode else 0.7
+        
         response = client.chat.completions.create(
             model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query}
-            ],
-            temperature=0.7,      # 0.0 = deterministico, 1.0 = creativo
-            max_tokens=2048,      # Lunghezza massima della risposta
+            messages=messages,
+            temperature=temperature,
+            max_tokens=2000, # Aumentiamo i token per gestire JSON lunghi
         )
+        
         return response.choices[0].message.content
 
     except Exception as e:
-        return f"Errore di comunicazione con l'LLM: {str(e)}"
-
-# Blocco di test: se esegui "python app/llm.py" verifichi subito se funziona
-if __name__ == "__main__":
-    print("Test connessione a vLLM...")
-    risposta = ask_qwen("Ciao, sei operativo?")
-    print(f"Risposta: {risposta}")
+        print(f"❌ Errore LLM: {str(e)}")
+        return "{}" if json_mode else f"Errore nel generare la risposta: {str(e)}"

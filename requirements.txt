@@ -14,3 +14,5 @@ pdfplumber
 vllm
 supabase
 python-dotenv
+PyMuPDF
+openai

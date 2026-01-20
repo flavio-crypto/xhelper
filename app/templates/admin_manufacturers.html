@@ -6,22 +6,50 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-fit">
-        <h3 class="font-bold text-slate-800 mb-4">Nuovo Produttore</h3>
-        <form action="/admin/manufacturers" method="post" class="space-y-4">
+
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-800">
+                {% if edit_data %} Modifica Produttore {% else %} Nuovo Produttore {% endif %}
+            </h3>
+            {% if edit_data %}
+            <a href="/admin/manufacturers" class="text-xs text-slate-400 hover:text-slate-600">Annulla</a>
+            {% endif %}
+        </div>
+
+        <form action="/admin/manufacturers/save" method="post" class="space-y-4">
+            <input type="hidden" name="id" value="{{ edit_data.id if edit_data else '' }}">
+
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Azienda</label>
-                <input type="text" name="name" required
-                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                    placeholder="Es. Mapei SpA">
+                <input type="text" name="name" required value="{{ edit_data.name if edit_data else '' }}"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
+
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sito Web</label>
-                <input type="text" name="website" class="w-full px-3 py-2 border rounded-lg outline-none"
-                    placeholder="www.mapei.com">
+                <input type="text" name="website" value="{{ edit_data.website if edit_data else '' }}"
+                    class="w-full px-3 py-2 border rounded-lg outline-none">
             </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                    <input type="email" name="email"
+                        value="{{ edit_data.contacts.email if edit_data and edit_data.contacts else '' }}"
+                        class="w-full px-3 py-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefono</label>
+                    <input type="text" name="phone"
+                        value="{{ edit_data.contacts.phone if edit_data and edit_data.contacts else '' }}"
+                        class="w-full px-3 py-2 border rounded-lg outline-none">
+                </div>
+            </div>
+
             <button type="submit"
-                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-lg transition-colors">
-                <i class="fa-solid fa-plus mr-2"></i> Aggiungi
+                class="w-full font-bold py-2 rounded-lg transition-colors text-white {% if edit_data %} bg-orange-500 hover:bg-orange-600 {% else %} bg-purple-600 hover:bg-purple-700 {% endif %}">
+                {% if edit_data %} <i class="fa-solid fa-floppy-disk mr-2"></i> Salva Modifiche {% else %} <i
+                    class="fa-solid fa-plus mr-2"></i> Aggiungi {% endif %}
             </button>
         </form>
     </div>
@@ -29,29 +57,47 @@
     <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div
             class="px-6 py-4 border-b border-slate-100 bg-slate-50 font-semibold text-slate-700 flex justify-between items-center">
-            <span>Produttori Censiti</span>
-            <span class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-600">{{ manufacturers|length }}
-                aziende</span>
+            <span>Produttori Censiti ({{ manufacturers|length }})</span>
         </div>
         <div class="overflow-y-auto max-h-[600px]">
             <table class="w-full text-left text-sm text-slate-600">
                 <thead class="bg-slate-50 text-xs uppercase font-medium text-slate-500 sticky top-0">
                     <tr>
                         <th class="px-6 py-3">Nome</th>
-                        <th class="px-6 py-3">Website</th>
+                        <th class="px-6 py-3">Contatti</th>
                         <th class="px-6 py-3 text-right">Azioni</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for m in manufacturers %}
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-6 py-3 font-medium text-slate-800">{{ m.name }}</td>
-                        <td class="px-6 py-3 text-blue-500"><a href="{{ m.website }}" target="_blank">{{ m.website
-                                }}</a></td>
-                        <td class="px-6 py-3 text-right">
-                            <a href="/admin/ingest?manufacturer_id={{ m.id }}"
-                                class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 font-medium transition-colors">
-                                <i class="fa-solid fa-upload mr-1"></i> Carica Materiale
+                    <tr class="hover:bg-slate-50 group">
+                        <td class="px-6 py-3">
+                            <div class="font-medium text-slate-800">{{ m.name }}</div>
+                            <a href="{{ m.website }}" target="_blank" class="text-xs text-blue-500 hover:underline">{{
+                                m.website }}</a>
+                        </td>
+                        <td class="px-6 py-3 text-xs">
+                            {% if m.contacts %}
+                            {% if m.contacts.email %}<div><i class="fa-solid fa-envelope w-4"></i> {{ m.contacts.email
+                                }}</div>{% endif %}
+                            {% if m.contacts.phone %}<div><i class="fa-solid fa-phone w-4"></i> {{ m.contacts.phone }}
+                            </div>{% endif %}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-3 text-right space-x-2">
+                            <a href="/admin/ingest?manufacturer_id={{ m.id }}" title="Carica Materiale"
+                                class="text-xs bg-purple-100 text-purple-700 px-2 py-1.5 rounded hover:bg-purple-200 transition-colors">
+                                <i class="fa-solid fa-upload"></i>
+                            </a>
+                            <a href="/admin/manufacturers?edit_id={{ m.id }}" title="Modifica"
+                                class="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded hover:bg-orange-200 transition-colors">
+                                <i class="fa-solid fa-pencil"></i>
+                            </a>
+                            <a href="/admin/manufacturers/delete/{{ m.id }}"
+                                onclick="return confirm('Sei sicuro? Se elimini il produttore potresti causare errori ai materiali collegati.')"
+                                title="Elimina"
+                                class="text-xs bg-red-100 text-red-700 px-2 py-1.5 rounded hover:bg-red-200 transition-colors">
+                                <i class="fa-solid fa-trash"></i>
                             </a>
                         </td>
                     </tr>

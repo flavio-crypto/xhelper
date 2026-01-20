@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from app.database import create_project, get_user_projects, get_project_by_id
+import json
+import io
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
+from pypdf import PdfReader  # <--- NUOVO IMPORT NECESSARIO
 from app.llm import ask_qwen
+from app.database import supabase, create_project, get_user_projects, get_project_by_id
 import secrets
+import base64
 
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
@@ -172,31 +176,75 @@ async def test_llm():
 # Assicurati di importare i nuovi moduli
 from app.database import supabase # Import generico
 
-# --- ROTTE ADMIN / DATA FACTORY ---
+# --- Modifica queste funzioni esistenti ---
 
 @app.get("/admin/manufacturers", response_class=HTMLResponse)
-async def admin_manufacturers(request: Request):
-    if not get_current_user(request): return RedirectResponse("/")
-    
-    # Recupera lista produttori
-    res = supabase.table("manufacturers").select("*").order("name").execute()
-    
-    return templates.TemplateResponse("admin_manufacturers.html", {
-        "request": request, 
-        "manufacturers": res.data
-    })
-
-@app.post("/admin/manufacturers")
-async def add_manufacturer(request: Request, name: str = Form(...), website: str = Form(None)):
+async def admin_manufacturers(request: Request, edit_id: str = None):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
     
-    supabase.table("manufacturers").insert({"name": name, "website": website}).execute()
+    # Recupera tutti
+    res = supabase.table("manufacturers").select("*").order("name").execute()
+    
+    # Se c'è edit_id, recuperiamo quel singolo record per riempire il form
+    edit_data = None
+    if edit_id:
+        single_res = supabase.table("manufacturers").select("*").eq("id", edit_id).single().execute()
+        edit_data = single_res.data
+
+    return templates.TemplateResponse("admin_manufacturers.html", {
+        "request": request, 
+        "user": user,
+        "manufacturers": res.data,
+        "edit_data": edit_data # Passiamo i dati da modificare al template
+    })
+
+@app.post("/admin/manufacturers/save")
+async def save_manufacturer(
+    request: Request, 
+    id: str = Form(None), # Se è vuoto -> Nuovo, Se c'è -> Modifica
+    name: str = Form(...), 
+    website: str = Form(None),
+    email: str = Form(None),
+    phone: str = Form(None)
+):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    contacts_data = {"email": email, "phone": phone}
+    
+    data = {
+        "name": name, 
+        "website": website,
+        "contacts": contacts_data
+    }
+    
+    if id and id.strip():
+        # UPDATE: Se c'è l'ID, aggiorniamo il record esistente
+        supabase.table("manufacturers").update(data).eq("id", id).execute()
+    else:
+        # INSERT: Se non c'è ID, ne creiamo uno nuovo
+        supabase.table("manufacturers").insert(data).execute()
+    
+    return RedirectResponse("/admin/manufacturers", status_code=302)
+
+@app.get("/admin/manufacturers/delete/{man_id}")
+async def delete_manufacturer(request: Request, man_id: str):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    # DELETE
+    try:
+        supabase.table("manufacturers").delete().eq("id", man_id).execute()
+    except Exception as e:
+        print(f"Errore eliminazione: {e}")
+        # Qui potremmo gestire l'errore se ci sono materiali collegati (foreign key constraint)
+        
     return RedirectResponse("/admin/manufacturers", status_code=302)
 
 @app.get("/admin/ingest", response_class=HTMLResponse)
 async def admin_ingest_page(request: Request, manufacturer_id: str):
-    user = get_current_user(request)
+    user = get_current_user(request) # 1. Catturiamo l'utente
     if not user: return RedirectResponse("/")
     
     # Recupera info produttore per il titolo
@@ -204,8 +252,9 @@ async def admin_ingest_page(request: Request, manufacturer_id: str):
     
     return templates.TemplateResponse("admin_ingest.html", {
         "request": request,
+        "user": user,          # <--- 2. Lo passiamo al template
         "manufacturer": man_res.data,
-        "analysis_data": None # Nessuna analisi ancora avviata
+        "analysis_data": None
     })
 
 @app.post("/admin/ingest", response_class=HTMLResponse)
@@ -214,7 +263,8 @@ async def admin_ingest_process(
     manufacturer_id: str = Form(...),
     file: UploadFile = File(...)
 ):
-    user = get_current_user(request)
+    user = get_current_user(request) # 1. Catturiamo l'utente
+    if not user: return RedirectResponse("/")
     
     # 1. Leggi PDF
     contents = await file.read()
@@ -223,13 +273,13 @@ async def admin_ingest_process(
     text = ""
     for page in reader.pages: text += page.extract_text()
     
-    # 2. Converti PDF in base64 per mostrarlo nell'iframe (Senza salvarlo su disco per ora)
+    # 2. Converti PDF in base64 per mostrarlo nell'iframe
     pdf_base64 = base64.b64encode(contents).decode('utf-8')
     
-    # 3. Chiedi all'AI di estrarre i dati
+    # 3. Chiedi all'AI
     extraction_prompt = (
         f"Analizza la scheda tecnica:\n{text[:15000]}\n"
-        f"Estrai JSON: manufacturer_name (ignora, lo so già), material_name, category, description, "
+        f"Estrai JSON: manufacturer_name (ignora), material_name, category, description, "
         f"technical_properties (cerca valori numerici, conducibilità, riciclato, certificazioni)."
     )
     
@@ -246,29 +296,89 @@ async def admin_ingest_process(
 
     return templates.TemplateResponse("admin_ingest.html", {
         "request": request,
+        "user": user,          # <--- 2. Lo passiamo al template anche qui
         "manufacturer": man_res.data,
         "analysis_data": data_dict,
-        "pdf_base64": pdf_base64 # Passiamo il PDF da visualizzare
+        "pdf_base64": pdf_base64
     })
 
-@app.post("/admin/save-material")
-async def save_validated_material(
-    request: Request,
-    manufacturer_id: str = Form(...),
-    material_name: str = Form(...),
-    category: str = Form(...),
-    description: str = Form(...),
-    # Nota: per le proprietà dinamiche servirebbe una logica più complessa di parsing del form,
-    # per ora salviamo i base data per farti vedere il flusso.
-):
-    # Salvataggio nel DB con stato 'published'
-    data = {
-        "manufacturer_id": manufacturer_id,
-        "name": material_name,
-        "category": category,
-        "description": description,
-        "status": "published"
-    }
-    supabase.table("materials").insert(data).execute()
+
+    # --- SEZIONE CREDITI LEED ---
+
+@app.get("/projects/{project_id}/credits/mr_epd", response_class=HTMLResponse)
+async def view_credit_mr_epd(request: Request, project_id: str):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
     
-    return RedirectResponse("/admin/manufacturers", status_code=302)
+    project = get_project_by_id(project_id)
+    
+    # Recuperiamo le categorie uniche presenti nel DB per popolare la tendina
+    # (Usiamo un set python per rimuovere duplicati se il DB non supporta .distinct() facile via API)
+    res_cats = supabase.table("materials").select("category").execute()
+    categories = sorted(list(set([row['category'] for row in res_cats.data if row['category']])))
+    
+    return templates.TemplateResponse("credits/mr_epd.html", {
+        "request": request,
+        "user": user,
+        "active_project": project,
+        "categories": categories
+    })
+
+
+# In main.py
+
+@app.post("/projects/{project_id}/credits/mr_epd/assign")
+async def assign_credit_mr_epd(
+    request: Request, 
+    project_id: str,
+    material_id: str = Form(...),
+    epd_id: str = Form(None) # Opzionale, se serve tracciare quale EPD specifica
+):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    # Usiamo la funzione creata sopra specificando il codice del credito attuale
+    # Potresti importarla da app.database
+    assign_material_to_project(project_id, material_id, "MR_EPD")
+    
+    # Rispondiamo con un piccolo tocco di UI:
+    # Invece di ricaricare tutto, restituiamo un bottone "Check" verde tramite HTMX
+    return HTMLResponse('<button class="btn btn-sm btn-success" disabled><i class="fa fa-check"></i> Aggiunto</button>')
+
+@app.post("/projects/{project_id}/credits/mr_epd/search", response_class=HTMLResponse)
+async def search_credit_mr_epd(
+    request: Request, 
+    project_id: str,
+    category: str = Form(...),
+    epd_type: str = Form(...), # Arriva come stringa dalla select HTML
+    search_text: str = Form("")
+):
+    user = get_current_user(request)
+    
+    # Conversione input
+    epd_type_int = int(epd_type) if epd_type.isdigit() else None
+    
+    # Esecuzione Ricerca
+    results = search_materials_db(category, epd_type_int, search_text)
+    
+    # Restituiamo solo il frammento HTML della tabella (pattern HTMX) 
+    # oppure ricarichiamo la pagina con i risultati. 
+    # Per semplicità ora, usiamo un template "partials" per aggiornare solo la lista.
+    return templates.TemplateResponse("partials/material_results_list.html", {
+        "request": request,
+        "materials": results
+    })
+
+    # Route placeholder per la Verifica (Card di sinistra)
+@app.get("/projects/{project_id}/credits/mr_epd/verify", response_class=HTMLResponse)
+async def verify_credit_mr_epd_page(request: Request, project_id: str):
+    user = get_current_user(request)
+    project = get_project_by_id(project_id)
+    
+    # Per ora mostriamo un template semplice o un "Work in Progress"
+    # Puoi creare un template 'verify_material.html' simile a quello di 'ingest' ma user-facing
+    return templates.TemplateResponse("credits/verify_material.html", {
+        "request": request, 
+        "user": user, 
+        "active_project": project
+    })
