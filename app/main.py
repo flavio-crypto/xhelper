@@ -274,6 +274,45 @@ async def admin_product_delete(request: Request, product_id: str):
     supabase.table("products").delete().eq("id", product_id).execute()
     return RedirectResponse("/admin/products", status_code=302)
 
+    # --- ROTTE PER I CREDITI LEED (AGGIUNTE) ---
+
+@app.post("/projects/{project_id}/credits/mr_epd/search", response_class=HTMLResponse)
+async def search_credit_mr_epd(
+    request: Request, 
+    project_id: str,
+    category: str = Form(...),
+    epd_type: str = Form(...),
+    search_text: str = Form("")
+):
+    user = get_current_user(request)
+    if not user: return HTMLResponse("Sessione scaduta", status_code=403)
+    
+    # Usiamo la nuova funzione di ricerca sui PRODUCTS
+    from app.database import search_products_db
+    results = search_products_db(category, epd_type, search_text)
+    
+    return templates.TemplateResponse("partials/material_results_list.html", {
+        "request": request,
+        "materials": results, # Passiamo i risultati al template parziale
+        "active_project_id": project_id
+    })
+
+@app.post("/projects/{project_id}/credits/mr_epd/assign")
+async def assign_credit_mr_epd(
+    request: Request, 
+    project_id: str,
+    material_id: str = Form(...),
+    epd_id: str = Form(None)
+):
+    user = get_current_user(request)
+    if not user: return HTMLResponse("Errore auth", status_code=403)
+    
+    from app.database import assign_material_to_project
+    # Nota: material_id qui corrisponde all'ID della tabella products
+    assign_material_to_project(project_id, material_id, "MR_EPD")
+    
+    return HTMLResponse('<button class="text-green-600 border border-green-200 bg-green-50 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default"><i class="fa-solid fa-check"></i> Aggiunto</button>')
+
 # --- ALTRE ROTTE LEGACY ---
 @app.get("/admin/ingest", response_class=HTMLResponse)
 async def admin_ingest_page(request: Request, manufacturer_id: str):
@@ -290,3 +329,43 @@ async def view_credit_mr_epd(request: Request, project_id: str):
     res_cats = supabase.table("products").select("category").execute()
     categories = sorted(list(set([row['category'] for row in res_cats.data if row['category']])))
     return templates.TemplateResponse("credits/mr_epd.html", {"request": request, "user": user, "active_project": project, "categories": categories})
+
+    # ... (altre rotte) ...
+
+@app.get("/admin/products/delete_doc/{product_id}/{doc_type}")
+async def delete_product_doc(request: Request, product_id: str, doc_type: str):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    # 1. Mappatura
+    column_map = {
+        "datasheet": "tech_file_path",
+        "epd": "epd_file_path",
+        "emission": "emission_file_path"
+    }
+    
+    target_col = column_map.get(doc_type)
+    if not target_col:
+        raise HTTPException(status_code=400, detail="Tipo documento non valido")
+        
+    # 2. Recuperiamo il percorso attuale dal DB
+    res = supabase.table("products").select(target_col).eq("id", product_id).single().execute()
+    current_web_path = res.data.get(target_col)
+    
+    # 3. Se il file esiste, lo cancelliamo dal DISCO e dal DB
+    if current_web_path:
+        # Trasformiamo il percorso web (/documents/...) in percorso fisico (/workspace/documents/...)
+        # DOCS_ROOT è definito in alto nel main.py come "/workspace/documents"
+        file_system_path = current_web_path.replace("/documents", DOCS_ROOT)
+        
+        try:
+            if os.path.exists(file_system_path):
+                os.remove(file_system_path)
+                print(f"File eliminato: {file_system_path}")
+        except Exception as e:
+            print(f"Errore eliminazione file fisico: {e}")
+            
+        # 4. Aggiorniamo il DB settando a NULL
+        supabase.table("products").update({target_col: None}).eq("id", product_id).execute()
+        
+    return RedirectResponse(f"/admin/products/{product_id}", status_code=302)

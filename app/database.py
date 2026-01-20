@@ -108,37 +108,31 @@ def get_project_by_id(project_id: str):
         print(f"❌ Errore recupero progetto {project_id}: {e}")
         return None
 
-def search_materials_db(category: str, epd_type: Optional[int], search_text: str):
+def search_products_db(category: str, epd_type: Optional[str], search_text: str):
     """
-    Esegue la query su Supabase unendo Materials ed EPDs.
+    Cerca nella nuova tabella 'products' unendo i dati di 'companies'.
     """
-    # Costruiamo la selezione base. 
-    # Vogliamo i dati del materiale, il nome del produttore, e i dati EPD.
-    # Sintassi: tabella_collegata(colonne)
-    select_query = "*, manufacturers(name), epds(*)"
-
-    # Se l'utente filtra per un TIPO SPECIFICO di EPD, dobbiamo usare "!inner"
-    # Questo forza la query a restituire solo materiali che HANNO quel tipo di EPD.
-    # Se non mettiamo !inner, ci ridarebbe il materiale con epds=[], che non vogliamo se filtriamo.
-    if epd_type is not None:
-        select_query = "*, manufacturers(name), epds!inner(*)"
+    # Selezioniamo prodotti e nome azienda
+    query = supabase.table("products").select("*, companies(name)")
     
-    query = supabase.table("materials").select(select_query)
-    
-    # 1. Filtro Categoria (sulla tabella materials)
+    # 1. Filtro Categoria
     if category and category != "Tutte":
         query = query.eq("category", category)
     
-    # 2. Filtro Tipo EPD (sulla tabella epds collegata)
-    if epd_type is not None:
-        query = query.eq("epds.epd_type", epd_type)
-        
-    # 3. Filtro Testo (sulla tabella materials)
+    # 2. Filtro Tipo EPD (Opzionale: se hai implementato la colonna epd_type)
+    # Se non la usi ancora, puoi commentare queste due righe
+    if epd_type and epd_type != "all":
+         query = query.eq("epd_type", int(epd_type))
+    
+    # 3. Filtro Testo (Nome prodotto, Descrizione o Nome Azienda)
+    # Nota: la ricerca su tabelle collegate (companies.name) richiede filtri specifici, 
+    # per semplicità qui cerchiamo su nome e descrizione del prodotto.
     if search_text:
         or_condition = f"name.ilike.%{search_text}%,description.ilike.%{search_text}%"
         query = query.or_(or_condition)
         
+    # Ordiniamo per data di creazione (i più recenti prima)
+    query = query.order("created_at", desc=True).limit(50)
+        
     result = query.execute()
     return result.data
-
-    
