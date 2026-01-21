@@ -1,54 +1,41 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-100px)]">
 
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
         <h2 class="text-xl font-bold text-slate-800 mb-4"><i class="fa-solid fa-robot mr-2"></i> Data Factory Ingestion</h2>
-        <p class="text-sm text-slate-500 mb-4">Incolla la lista CSV: <code>Produttore, Nome Prodotto, URL</code></p>
         
-        <form hx-post="/admin/data-factory/process" hx-target="#log-area" hx-indicator="#loading">
+        <form hx-post="/admin/data-factory/process" hx-target="#drafts-area" hx-indicator="#loading">
             <textarea name="raw_list" rows="10" 
-                class="w-full p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-lg mb-4"
+                class="w-full p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-lg mb-4 outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="Mapei, Planitop Fast 330, https://mapei.com/...\nRockwool, Frontrock Max, https://rockwool.com/..."></textarea>
             
-            <button type="submit" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700">
-                Avvia Motore AI
+            <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3 rounded-lg hover:bg-slate-700 transition-all shadow-lg">
+                <i class="fa-solid fa-bolt mr-2"></i> Genera Anteprima Volatile
             </button>
         </form>
 
-        <div id="loading" class="htmx-indicator mt-4 text-center text-slate-500">
-            <i class="fa-solid fa-circle-notch fa-spin"></i> Elaborazione in corso...
+        <div id="loading" class="htmx-indicator mt-6 text-center">
+            <div class="flex flex-col items-center justify-center">
+                <div class="w-8 h-8 border-4 border-slate-200 border-t-brand-600 rounded-full animate-spin mb-2"></div>
+                <span class="text-xs text-slate-500 font-medium">L'AI sta analizzando i link...</span>
+            </div>
         </div>
-        
-        <div id="log-area" class="mt-4"></div>
     </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">Bozze da Validare</h2>
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+            <h2 class="text-xl font-bold text-slate-800">Anteprima Risultati</h2>
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-1 rounded">Sessione Temporanea</span>
+        </div>
         
-        <div class="overflow-y-auto max-h-[600px] space-y-3">
-            {% for d in drafts %}
-            <div class="p-4 border border-slate-100 rounded-lg hover:border-brand-500 transition-colors bg-slate-50">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="text-xs font-bold text-slate-400 uppercase">{{ d.companies.name }}</div>
-                        <div class="font-bold text-slate-800">{{ d.name }}</div>
-                        <div class="text-xs text-slate-500 mt-1">{{ d.category }}</div>
-                    </div>
-                    <div class="text-right">
-                        <button hx-post="/admin/validate-product/{{ d.id }}" hx-swap="outerHTML"
-                            class="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold hover:bg-green-200">
-                            Valida
-                        </button>
-                        <a href="{{ d.url_technical_sheet }}" target="_blank" class="block mt-2 text-xs text-blue-500 underline">Link</a>
-                    </div>
-                </div>
-                <div class="mt-2 text-xs text-slate-400 font-mono truncate">
-                    {{ d.properties }}
-                </div>
+        <div id="drafts-area" class="overflow-y-auto flex-1 space-y-3 pr-2">
+            <div class="h-full flex flex-col items-center justify-center text-slate-300">
+                <i class="fa-solid fa-layer-group text-4xl mb-3"></i>
+                <p class="text-sm">Incolla i link e avvia per vedere le anteprime qui.</p>
+                <p class="text-xs mt-2 text-slate-400">Le bozze non confermate andranno perse al refresh.</p>
             </div>
-            {% endfor %}
         </div>
     </div>
 

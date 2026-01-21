@@ -1,0 +1,59 @@
+<div class="space-y-3 animate-fade-in-up">
+    {% for item in results %}
+        {% if item.status == 'error' %}
+            <div class="p-4 border-l-4 border-red-500 bg-red-50 rounded-r shadow-sm mb-2">
+                <div class="font-bold text-red-800">{{ item.product }}</div>
+                <div class="text-xs text-red-600">{{ item.reason }}</div>
+            </div>
+        {% else %}
+            
+            <div class="draft-card bg-white p-4 rounded-xl border {% if item.exists_warning %}border-yellow-400 bg-yellow-50{% else %}border-brand-200 bg-white{% endif %} shadow-sm hover:shadow-md transition-all mb-3">
+                
+                <form onsubmit="return false;"> 
+                    
+                    <input type="hidden" name="company_id" value="{{ item.company_id }}">
+                    <input type="hidden" name="name" value="{{ item.final_name }}">
+                    <input type="hidden" name="category" value="{{ item.category }}">
+                    <input type="hidden" name="description" value="{{ item.description }}">
+                    <input type="hidden" name="url_technical_sheet" value="{{ item.url_technical_sheet }}">
+                    <input type="hidden" name="epd_url" value="{{ item.epd_url or '' }}">
+                    <input type="hidden" name="is_recycled" value="{{ 'true' if item.is_recycled else 'false' }}">
+
+                    <div class="flex justify-between items-start">
+                        <div class="pr-4">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                                {{ item.company_name }}
+                            </div>
+                            <div class="font-bold text-slate-800 text-sm leading-tight mb-1">
+                                {{ item.final_name }}
+                            </div>
+                            <div class="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-slate-100 border border-slate-200 text-slate-500 mb-2">
+                                {{ item.category }}
+                            </div>
+                            {% if item.exists_warning %}
+                            <div class="text-[10px] text-yellow-700 font-bold flex items-center mt-1">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Nome simile nel DB
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="button-area flex flex-col gap-2 shrink-0">
+                            
+                            <button hx-post="/admin/products/confirm-draft" 
+                                    hx-target="closest .button-area" 
+                                    hx-swap="outerHTML"
+                                    class="bg-brand-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-brand-700 shadow-sm transition-transform active:scale-95 w-24 text-center flex items-center justify-center">
+                                Carica
+                            </button>
+                            
+                            <button type="button" onclick="this.closest('.draft-card').remove()"
+                                class="bg-white text-slate-400 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium hover:text-red-500 hover:border-red-200 w-24 text-center transition-colors">
+                                Scarta
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>

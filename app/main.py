@@ -139,26 +139,89 @@ async def delete_manufacturer(request: Request, man_id: str):
     return RedirectResponse("/admin/manufacturers", status_code=302)
 
 # --- DATA FACTORY ---
+
 @app.get("/admin/data-factory", response_class=HTMLResponse)
 async def admin_data_factory(request: Request):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
-    drafts = supabase.table("products").select("*, companies(name)").eq("is_validated", False).order("created_at", desc=True).limit(20).execute()
-    return templates.TemplateResponse("admin_data_factory.html", {"request": request, "user": user, "drafts": drafts.data})
+    # Carichiamo la pagina base vuota a destra (nessun dato dal DB!)
+    return templates.TemplateResponse("admin_data_factory.html", {
+        "request": request, "user": user, "drafts": [] 
+    })
 
 @app.post("/admin/data-factory/process")
 async def admin_process_list(request: Request, raw_list: str = Form(...)):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
+    
     lines = raw_list.strip().split("\n")
     results = []
+    
     for line in lines:
         parts = line.split(",")
         if len(parts) >= 3:
-            man = parts[0].strip(); prod = parts[1].strip(); url = parts[2].strip()
+            man = parts[0].strip()
+            prod = parts[1].strip()
+            url = parts[2].strip()
+            # process_batch_item ora restituisce dati, NON salva
             res = await process_batch_item(man, prod, url)
             results.append(res)
-    return templates.TemplateResponse("partials/ingestion_log.html", {"request": request, "results": results})
+            
+    # Usiamo il template delle card volatili
+    return templates.TemplateResponse("partials/draft_list.html", {
+        "request": request, "results": results
+    })
+
+# Modifica questa funzione in app/main.py
+
+@app.post("/admin/products/confirm-draft")
+async def confirm_draft(
+    request: Request,
+    company_id: str = Form(...),
+    name: str = Form(...),
+    category: str = Form(...),
+    description: str = Form(""),
+    url_technical_sheet: str = Form(""),
+    epd_url: str = Form(None),
+    is_recycled: str = Form("false")
+):
+    user = get_current_user(request)
+    if not user: return HTMLResponse("Errore auth", status_code=403)
+
+    # 1. Salvataggio nel DB
+    data = {
+        "company_id": company_id,
+        "name": name,
+        "category": category,
+        "description": description,
+        "url_technical_sheet": url_technical_sheet,
+        "epd_url": epd_url if epd_url else None,
+        "is_recycled": True if is_recycled == 'true' else False,
+        "is_validated": False
+    }
+    
+    try:
+        res = supabase.table("products").insert(data).execute()
+        new_id = res.data[0]['id']
+        
+        # 2. RISPOSTA HTMX (Non redirect!)
+        # Restituiamo un nuovo blocco di pulsanti che sostituisce quelli vecchi
+        return HTMLResponse(f"""
+            <div class="flex flex-col gap-2 shrink-0 animate-fade-in">
+                <a href="/admin/products/{new_id}" target="_blank"
+                   class="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200 text-center w-24 flex items-center justify-center">
+                   <i class="fa-solid fa-pen-to-square mr-1"></i> Modifica
+                </a>
+                <span class="text-[10px] text-green-600 text-center font-medium">
+                   <i class="fa-solid fa-check"></i> Salvato
+                </span>
+            </div>
+        """)
+        
+    except Exception as e:
+        print(f"Errore salvataggio: {e}")
+        return HTMLResponse(f"<div class='text-red-500 text-xs'>Errore: {str(e)}</div>", status_code=500)
+
 
 @app.post("/admin/validate-product/{product_id}")
 async def validate_product(product_id: str):
@@ -241,10 +304,19 @@ async def admin_product_save(
     category: str = Form(...),
     description: str = Form(""),
     is_validated: bool = Form(False),
+    
+    # URL Scheda Tecnica (AGGIUNTO)
+    url_technical_sheet: str = Form(None),
+
+    # EPD (URL + Scadenza)
     epd_url: str = Form(None),
     epd_expiration: str = Form(None),
+    
+    # Emissioni (URL + Scadenza)
     emission_url: str = Form(None),
     emission_expiration: str = Form(None),
+    
+    # Riciclato
     is_recycled: bool = Form(False) 
 ):
     user = get_current_user(request)
@@ -258,15 +330,24 @@ async def admin_product_save(
         "category": category,
         "description": description,
         "is_validated": True if is_validated else False,
+        
+        "url_technical_sheet": url_technical_sheet, # <--- Salviamo il link
+        
         "epd_url": epd_url,
         "epd_expiration": clean_date(epd_expiration),
+        
         "emission_url": emission_url,
         "emission_expiration": clean_date(emission_expiration),
+        
         "is_recycled": True if is_recycled else False
     }
-    supabase.table("products").update(data).eq("id", id).execute()
+    
+    try:
+        supabase.table("products").update(data).eq("id", id).execute()
+    except Exception as e:
+        print(f"Errore salvataggio: {e}")
+    
     return RedirectResponse(f"/admin/products/{id}", status_code=302)
-
 @app.get("/admin/products/delete/{product_id}")
 async def admin_product_delete(request: Request, product_id: str):
     user = get_current_user(request)
