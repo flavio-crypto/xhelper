@@ -68,7 +68,12 @@
                                 <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-sm">
                                     <i class="fa-solid fa-link"></i>
                                 </span>
-                                <input type="text" name="url_technical_sheet" value="{{ product.url_technical_sheet or '' }}" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-r-lg text-sm text-blue-600 font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+                                <input type="text" id="url_tech_input" name="url_technical_sheet" value="{{ product.url_technical_sheet or '' }}" placeholder="https://..." 
+                                       class="w-full px-3 py-2 border border-slate-300 border-r-0 text-sm text-blue-600 font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+                                <button type="button" onclick="openLink('url_tech_input')" 
+                                        class="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-slate-300 bg-slate-50 text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition-colors" title="Apri Link in nuova scheda">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </button>
                             </div>
                         </div>
 
@@ -99,11 +104,19 @@
                         <i class="fa-solid fa-leaf text-green-600 mr-2"></i>
                         <h3 class="font-bold text-slate-800 text-sm">EPD</h3>
                     </div>
-                    {% if not product.epd_file_path %}
-                    <button type="button" onclick="openUploadModal('epd')" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-50 font-bold text-slate-600">
-                        <i class="fa-solid fa-upload"></i> Carica
-                    </button>
-                    {% endif %}
+                    
+                    <div class="flex space-x-1">
+                        <button type="button" onclick="openShareModal('epd')" 
+                                class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-green-100 hover:text-green-700 font-bold text-slate-500 transition-colors" title="Usa EPD esistente">
+                            <i class="fa-solid fa-link"></i> Collega
+                        </button>
+                        
+                        {% if not product.epd_file_path %}
+                        <button type="button" onclick="openUploadModal('epd')" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-50 font-bold text-slate-600">
+                            <i class="fa-solid fa-upload"></i> Carica
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="p-6 space-y-4">
                     
@@ -113,7 +126,12 @@
                             <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-sm">
                                 <i class="fa-solid fa-globe"></i>
                             </span>
-                            <input type="text" name="epd_url" value="{{ product.epd_url or '' }}" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-r-lg text-sm text-blue-600 font-mono focus:ring-2 focus:ring-green-500 outline-none">
+                            <input type="text" id="epd_url_input" name="epd_url" value="{{ product.epd_url or '' }}" placeholder="https://..." 
+                                   class="w-full px-3 py-2 border border-slate-300 border-r-0 text-sm text-blue-600 font-mono focus:ring-2 focus:ring-green-500 outline-none">
+                            <button type="button" onclick="openLink('epd_url_input')" 
+                                    class="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-slate-300 bg-slate-50 text-slate-500 hover:text-green-600 hover:bg-slate-100 transition-colors" title="Apri Link">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -143,11 +161,19 @@
                         <i class="fa-solid fa-wind text-blue-600 mr-2"></i>
                         <h3 class="font-bold text-slate-800 text-sm">Emissioni (VOC)</h3>
                     </div>
-                    {% if not product.emission_file_path %}
-                    <button type="button" onclick="openUploadModal('emission')" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-50 font-bold text-slate-600">
-                        <i class="fa-solid fa-upload"></i> Carica
-                    </button>
-                    {% endif %}
+                    
+                    <div class="flex space-x-1">
+                        <button type="button" onclick="openShareModal('emission')" 
+                                class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-blue-100 hover:text-blue-700 font-bold text-slate-500 transition-colors" title="Usa Certificato esistente">
+                            <i class="fa-solid fa-link"></i> Collega
+                        </button>
+
+                        {% if not product.emission_file_path %}
+                        <button type="button" onclick="openUploadModal('emission')" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded hover:bg-slate-50 font-bold text-slate-600">
+                            <i class="fa-solid fa-upload"></i> Carica
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="p-6 space-y-4">
                     
@@ -157,7 +183,12 @@
                             <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-sm">
                                 <i class="fa-solid fa-globe"></i>
                             </span>
-                            <input type="text" name="emission_url" value="{{ product.emission_url or '' }}" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-r-lg text-sm text-blue-600 font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="emission_url_input" name="emission_url" value="{{ product.emission_url or '' }}" placeholder="https://..." 
+                                   class="w-full px-3 py-2 border border-slate-300 border-r-0 text-sm text-blue-600 font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+                            <button type="button" onclick="openLink('emission_url_input')" 
+                                    class="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-slate-300 bg-slate-50 text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition-colors" title="Apri Link">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -227,12 +258,73 @@
         </form>
     </div>
 </div>
+
+<div id="shareModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4 flex flex-col max-h-[80vh]">
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Collega Documento Esistente</h3>
+                <p class="text-xs text-slate-500">Scegli da un altro prodotto di <span class="font-bold text-slate-700">{{ product.companies.name }}</span></p>
+            </div>
+            <button onclick="document.getElementById('shareModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div id="shareListContent" class="flex-1 overflow-y-auto min-h-[200px]">
+            <div class="flex items-center justify-center h-full text-slate-400">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Caricamento...
+            </div>
+        </div>
+
+        <form id="shareForm" action="/admin/products/copy-doc-data" method="post" class="hidden">
+            <input type="hidden" name="target_id" value="{{ product.id }}">
+            <input type="hidden" name="source_id" id="shareSourceId">
+            <input type="hidden" name="doc_type" id="shareDocType">
+        </form>
+    </div>
+</div>
+
 <script>
+    // Apre il link contenuto nell'input
+    function openLink(fieldId) {
+        const url = document.getElementById(fieldId).value;
+        if (url && url.trim() !== "") {
+            window.open(url, '_blank');
+        } else {
+            alert("Inserisci prima un link valido.");
+        }
+    }
+
     function openUploadModal(type) {
         document.getElementById('modalDocType').value = type;
-        const modal = document.getElementById('uploadModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        document.getElementById('uploadModal').classList.remove('hidden');
+        document.getElementById('uploadModal').classList.add('flex');
+    }
+
+    function openShareModal(type) {
+        document.getElementById('shareModal').classList.remove('hidden');
+        document.getElementById('shareModal').classList.add('flex');
+        document.getElementById('shareDocType').value = type;
+        
+        const container = document.getElementById('shareListContent');
+        container.innerHTML = '<div class="flex items-center justify-center h-32 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Ricerca documenti...</div>';
+        
+        const companyId = "{{ product.company_id }}";
+        const currentId = "{{ product.id }}";
+        
+        fetch(`/admin/products/share-candidates/${type}/${companyId}/${currentId}`)
+            .then(response => response.text())
+            .then(html => {
+                container.innerHTML = html;
+            });
+    }
+
+    function selectSourceProduct(sourceId) {
+        if(confirm("Vuoi copiare i documenti da questo prodotto? I dati attuali verranno sovrascritti.")) {
+            document.getElementById('shareSourceId').value = sourceId;
+            document.getElementById('shareForm').submit();
+        }
     }
 </script>
 {% endblock %}

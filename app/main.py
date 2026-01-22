@@ -450,3 +450,113 @@ async def delete_product_doc(request: Request, product_id: str, doc_type: str):
         supabase.table("products").update({target_col: None}).eq("id", product_id).execute()
         
     return RedirectResponse(f"/admin/products/{product_id}", status_code=302)
+
+
+    # --- FUNZIONI DI CONDIVISIONE DOCUMENTI (SHARING) ---
+
+@app.get("/admin/products/share-candidates/{doc_type}/{company_id}/{current_id}", response_class=HTMLResponse)
+async def get_share_candidates(request: Request, doc_type: str, company_id: str, current_id: str):
+    user = get_current_user(request)
+    if not user: return HTMLResponse("Accesso negato", status_code=403)
+
+    # Definiamo quale colonna controllare per vedere se il documento esiste
+    # Cerchiamo prodotti che abbiano ALMENO il file fisico O il link web
+    if doc_type == "epd":
+        filter_condition = "or(epd_file_path.neq.null,epd_url.neq.null)"
+    elif doc_type == "emission":
+        filter_condition = "or(emission_file_path.neq.null,emission_url.neq.null)"
+    else:
+        return HTMLResponse("Tipo documento non valido")
+
+    # Query: Stessa azienda, documento presente, ESCLUSO se stesso
+    # Nota: Supabase-py ha limiti sui filtri complessi OR, facciamo una select più ampia e filtriamo in Python per sicurezza
+    candidates_res = supabase.table("products")\
+        .select("id, name, epd_expiration, emission_expiration, epd_file_path, emission_file_path")\
+        .eq("company_id", company_id)\
+        .neq("id", current_id)\
+        .order("name")\
+        .execute()
+    
+    # Filtriamo in python per precisione
+    valid_candidates = []
+    for p in candidates_res.data:
+        if doc_type == "epd" and (p.get('epd_file_path') or p.get('epd_url')): # Nota: epd_url non era nella select, aggiungiamolo se serve, ma qui controlliamo il path primario
+             valid_candidates.append(p)
+        elif doc_type == "emission" and (p.get('emission_file_path') or p.get('emission_url')):
+             valid_candidates.append(p)
+    
+    # Renderizziamo una lista HTML parziale (da iniettare nella modale)
+    html_content = """<div class="space-y-2 max-h-[300px] overflow-y-auto">"""
+    
+    if not valid_candidates:
+        html_content += """<div class="text-slate-400 text-sm text-center py-4">Nessun altro prodotto di questa azienda ha questo documento.</div>"""
+    else:
+        for cand in valid_candidates:
+            # Info da mostrare
+            date_info = ""
+            if doc_type == "epd" and cand.get('epd_expiration'): date_info = f"<span class='text-xs text-slate-400 ml-2'>Scad: {cand['epd_expiration']}</span>"
+            if doc_type == "emission" and cand.get('emission_expiration'): date_info = f"<span class='text-xs text-slate-400 ml-2'>Scad: {cand['emission_expiration']}</span>"
+            
+            # Badge File
+            file_badge = ""
+            has_file = cand.get(f"{doc_type}_file_path")
+            if has_file: file_badge = "<i class='fa-solid fa-file-pdf text-brand-500 mr-2' title='File Fisico presente'></i>"
+            else: file_badge = "<i class='fa-solid fa-link text-blue-500 mr-2' title='Solo Link Web'></i>"
+
+            html_content += f"""
+            <div class="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                 onclick="selectSourceProduct('{cand['id']}')">
+                <div class="flex items-center">
+                    {file_badge}
+                    <span class="font-bold text-slate-700 text-sm">{cand['name']}</span>
+                    {date_info}
+                </div>
+                <button type="button" class="text-xs bg-white border border-slate-300 px-3 py-1 rounded shadow-sm hover:text-brand-600 font-bold">
+                    Usa Questo
+                </button>
+            </div>
+            """
+    html_content += "</div>"
+    
+    return HTMLResponse(html_content)
+
+
+@app.post("/admin/products/copy-doc-data")
+async def copy_doc_data(
+    request: Request,
+    target_id: str = Form(...),
+    source_id: str = Form(...),
+    doc_type: str = Form(...)
+):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+
+    # 1. Recuperiamo i dati del prodotto SORGENTE (Donatore)
+    source_res = supabase.table("products").select("*").eq("id", source_id).single().execute()
+    source_data = source_res.data
+    
+    if not source_data:
+        return HTMLResponse("Prodotto sorgente non trovato", status_code=404)
+
+    # 2. Prepariamo i dati da copiare in base al tipo
+    update_data = {}
+    
+    if doc_type == "epd":
+        update_data = {
+            "epd_url": source_data.get("epd_url"),
+            "epd_file_path": source_data.get("epd_file_path"),
+            "epd_expiration": source_data.get("epd_expiration"),
+            "epd_type": source_data.get("epd_type")
+        }
+    elif doc_type == "emission":
+        update_data = {
+            "emission_url": source_data.get("emission_url"),
+            "emission_file_path": source_data.get("emission_file_path"),
+            "emission_expiration": source_data.get("emission_expiration")
+        }
+    
+    # 3. Aggiorniamo il prodotto TARGET (Ricevente)
+    supabase.table("products").update(update_data).eq("id", target_id).execute()
+    
+    # Ricarichiamo la pagina
+    return RedirectResponse(f"/admin/products/{target_id}", status_code=302)

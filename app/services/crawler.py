@@ -3,8 +3,8 @@ from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
 import asyncio
 
-# Identifichiamoci chiaramente come Bot aziendale
-USER_AGENT = "FullerBot/1.0 (+info@fullerstp.it)"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
 
 async def can_fetch(url: str) -> bool:
     """
