@@ -13,6 +13,7 @@ from pypdf import PdfReader
 from app.llm import ask_qwen
 from app.database import supabase, create_project, get_user_projects, get_project_by_id
 from app.services.ingestion import process_batch_item, EDILIZIA_CATEGORIES 
+import math
 
 app = FastAPI()
 
@@ -131,12 +132,31 @@ async def save_manufacturer(request: Request, id: str = Form(None), name: str = 
         supabase.table("companies").insert(data).execute()
     return RedirectResponse("/admin/manufacturers", status_code=302)
 
+# Cerca questa funzione in app/main.py e sostituiscila
+
 @app.get("/admin/manufacturers/delete/{man_id}")
 async def delete_manufacturer(request: Request, man_id: str):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
-    supabase.table("companies").delete().eq("id", man_id).execute()
-    return RedirectResponse("/admin/manufacturers", status_code=302)
+    
+    try:
+        # Tenta l'eliminazione
+        supabase.table("companies").delete().eq("id", man_id).execute()
+        return RedirectResponse("/admin/manufacturers", status_code=302)
+        
+    except Exception as e:
+        print(f"Errore eliminazione produttore: {e}")
+        
+        # In caso di errore (es. Foreign Key), ricarichiamo la lista e mostriamo l'errore
+        res = supabase.table("companies").select("*").order("name").execute()
+        
+        return templates.TemplateResponse("admin_manufacturers.html", {
+            "request": request, 
+            "user": user, 
+            "companies": res.data, 
+            "edit_data": None, # Reset del form modifica
+            "error_msg": "Impossibile eliminare: ci sono prodotti collegati a questo produttore. Elimina prima i prodotti."
+        })
 
 # --- DATA FACTORY ---
 
@@ -229,28 +249,92 @@ async def validate_product(product_id: str):
     return HTMLResponse('<span class="text-green-600 font-bold">Validato!</span>')
 
 # --- GESTIONE PRODOTTI (CRUD) ---
+import math
+
+# ... (altre funzioni e import)
+
 @app.get("/admin/products", response_class=HTMLResponse)
-async def admin_products_list(request: Request, q: str = "", category: str = "", status: str = ""):
+async def admin_products_list(
+    request: Request, 
+    search_company: str = "", 
+    search_product: str = "", 
+    search_category: str = "", 
+    page: int = 1
+):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
-    query = supabase.table("products").select("*, companies(name)")
-    if q: query = query.ilike("name", f"%{q}%")
-    if category: query = query.eq("category", category)
-    if status == "draft": query = query.eq("is_validated", False)
-    elif status == "valid": query = query.eq("is_validated", True)
-    res = query.order("created_at", desc=True).limit(50).execute()
+
+    limit = 20
+    offset = (page - 1) * limit
+
+    # Query Base
+    query = supabase.table("products").select("*, companies!inner(name)", count="exact")
+
+    # 1. Filtro Azienda (se presente)
+    if search_company:
+        query = query.ilike("companies.name", f"%{search_company}%")
+    
+    # 2. Filtro Prodotto/Descrizione (se presente)
+    if search_product:
+        # Cerca nel nome O nella descrizione
+        query = query.or_(f"name.ilike.%{search_product}%,description.ilike.%{search_product}%")
+
+    # 3. Filtro Categoria (se presente)
+    if search_category:
+        query = query.ilike("category", f"%{search_category}%")
+
+    # Esecuzione con paginazione
+    res = query.order("name").range(offset, offset + limit - 1).execute()
+
+    products = res.data
+    total_items = res.count if res.count else 0
+    total_pages = math.ceil(total_items / limit)
+
     return templates.TemplateResponse("admin_products_list.html", {
-        "request": request, "user": user, "products": res.data, "categories": EDILIZIA_CATEGORIES, "filters": {"q": q, "category": category, "status": status}
+        "request": request, 
+        "user": user, 
+        "products": products,
+        "search_company": search_company,
+        "search_product": search_product,
+        "search_category": search_category,
+        "page": page,
+        "total_pages": total_pages,
+        "total_items": total_items
     })
 
-@app.get("/admin/products/{product_id}", response_class=HTMLResponse)
-async def admin_product_detail(request: Request, product_id: str):
+@app.get("/admin/products/{id}", response_class=HTMLResponse)
+async def admin_product_detail(request: Request, id: str):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
-    prod_res = supabase.table("products").select("*, companies(id, name)").eq("id", product_id).single().execute()
-    comp_res = supabase.table("companies").select("id, name").order("name").execute()
+
+    # 1. Recupera il Prodotto
+    prod_res = supabase.table("products").select("*, companies(name)").eq("id", id).single().execute()
+    product = prod_res.data
+
+    # 2. Recupera la Compliance (Tabella emission_products)
+    # Cerchiamo se esiste una riga per questo prodotto
+    try:
+        emis_res = supabase.table("emission_products").select("*").eq("product_id", id).single().execute()
+        emission_data = emis_res.data
+    except:
+        # Se non c'è, passiamo un dizionario vuoto
+        emission_data = {}
+
+    companies = supabase.table("companies").select("*").order("name").execute().data
+    categories = [
+        "Isolanti Termici", "Impermeabilizzanti", "Cartongesso e Lastre",
+        "Intonaci e Malte", "Adesivi e Sigillanti", "Pavimenti e Rivestimenti",
+        "Vernici e Finiture", "Calcestruzzi e Cementi", "Laterizi e Blocchi",
+        "Facciate e Cappotti", "Serramenti e Vetri", "Impianti HVAC"
+    ]
+
     return templates.TemplateResponse("admin_product_detail.html", {
-        "request": request, "user": user, "product": prod_res.data, "companies": comp_res.data, "categories": EDILIZIA_CATEGORIES
+        "request": request, 
+        "user": user, 
+        "product": product,
+        "emission_data": emission_data, # Passiamo i dati specifici
+        "companies": companies, 
+        "categories": categories
     })
 
 # --- NUOVA ROUTE UPLOAD DOCUMENTI ---
@@ -303,49 +387,63 @@ async def admin_product_save(
     company_id: str = Form(...),
     category: str = Form(...),
     description: str = Form(""),
-    is_validated: bool = Form(False),
-    
-    # URL Scheda Tecnica (AGGIUNTO)
-    url_technical_sheet: str = Form(None),
-
-    # EPD (URL + Scadenza)
+    url_technical_sheet: str = Form(""),
     epd_url: str = Form(None),
     epd_expiration: str = Form(None),
-    
-    # Emissioni (URL + Scadenza)
     emission_url: str = Form(None),
     emission_expiration: str = Form(None),
-    
-    # Riciclato
-    is_recycled: bool = Form(False) 
+    is_validated: str = Form("false"),
+    is_recycled: str = Form("false"),
+    # Parametri LEED (Match con lo schema del DB)
+    leed_v4: str = Form("false"),
+    leed_v41: str = Form("false"),
+    leed_v5: str = Form("false")
 ):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
-    
-    def clean_date(d): return d if d and d.strip() else None
-    
-    data = {
+
+    # 1. Aggiornamento Tabella PRODUCTS
+    prod_data = {
         "name": name,
         "company_id": company_id,
         "category": category,
         "description": description,
-        "is_validated": True if is_validated else False,
-        
-        "url_technical_sheet": url_technical_sheet, # <--- Salviamo il link
-        
-        "epd_url": epd_url,
-        "epd_expiration": clean_date(epd_expiration),
-        
-        "emission_url": emission_url,
-        "emission_expiration": clean_date(emission_expiration),
-        
-        "is_recycled": True if is_recycled else False
+        "url_technical_sheet": url_technical_sheet,
+        "epd_url": epd_url or None,
+        "epd_expiration": epd_expiration or None,
+        "emission_url": emission_url or None,
+        "emission_expiration": emission_expiration or None,
+        "is_validated": True if is_validated == 'true' else False,
+        "is_recycled": True if is_recycled == 'true' else False,
     }
+
+    if id:
+        supabase.table("products").update(prod_data).eq("id", id).execute()
+        product_id = id
+    else:
+        res = supabase.table("products").insert(prod_data).execute()
+        product_id = res.data[0]['id']
+
+    # 2. Aggiornamento Tabella EMISSION_PRODUCTS
+    # Controlliamo se esiste già una riga per questo prodotto
+    existing_check = supabase.table("emission_products").select("id").eq("product_id", product_id).execute()
     
-    try:
-        supabase.table("products").update(data).eq("id", id).execute()
-    except Exception as e:
-        print(f"Errore salvataggio: {e}")
+    emission_payload = {
+        "leed_v4_compliant": True if leed_v4 == 'true' else False,
+        "leed_v41_compliant": True if leed_v41 == 'true' else False,
+        "leed_v5_compliant": True if leed_v5 == 'true' else False
+    }
+
+    if existing_check.data:
+        # Se esiste, aggiorniamo quella riga specifica
+        row_id = existing_check.data[0]['id']
+        supabase.table("emission_products").update(emission_payload).eq("id", row_id).execute()
+    else:
+        # Se non esiste, la creiamo
+        emission_payload["product_id"] = product_id
+        supabase.table("emission_products").insert(emission_payload).execute()
+
+    return RedirectResponse(f"/admin/products/{product_id}", status_code=302)
     
     return RedirectResponse(f"/admin/products/{id}", status_code=302)
 @app.get("/admin/products/delete/{product_id}")

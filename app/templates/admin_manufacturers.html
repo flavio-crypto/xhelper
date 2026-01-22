@@ -21,13 +21,13 @@
 
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Azienda</label>
-                <input type="text" name="name" required value="{{ edit_data.name if edit_data else '' }}"
+                <input type="text" name="name" required value="{{ (edit_data.name or '') if edit_data else '' }}"
                     class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sito Web</label>
-                <input type="text" name="website" value="{{ edit_data.website if edit_data else '' }}"
+                <input type="text" name="website" value="{{ (edit_data.website or '') if edit_data else '' }}"
                     class="w-full px-3 py-2 border rounded-lg outline-none">
             </div>
 
@@ -35,13 +35,13 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
                     <input type="email" name="email"
-                        value="{{ edit_data.email if edit_data else '' }}"
+                        value="{{ (edit_data.email or '') if edit_data else '' }}"
                         class="w-full px-3 py-2 border rounded-lg outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefono</label>
                     <input type="text" name="phone"
-                        value="{{ edit_data.phone if edit_data else '' }}"
+                        value="{{ (edit_data.phone or '') if edit_data else '' }}"
                         class="w-full px-3 py-2 border rounded-lg outline-none">
                 </div>
             </div>
@@ -54,47 +54,68 @@
         </form>
     </div>
 
-    <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div
-            class="px-6 py-4 border-b border-slate-100 bg-slate-50 font-semibold text-slate-700 flex justify-between items-center">
+    <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full max-h-[calc(100vh-140px)]">
+        
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 font-semibold text-slate-700 flex justify-between items-center shrink-0">
             <span>Produttori Censiti ({{ companies|length }})</span>
         </div>
-        <div class="overflow-y-auto max-h-[600px]">
+
+        {% if error_msg %}
+        <div class="mx-6 mt-4 bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded shadow-sm text-sm" role="alert">
+            <p class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Attenzione</p>
+            <p>{{ error_msg }}</p>
+        </div>
+        {% endif %}
+
+        <div class="overflow-y-auto flex-1 p-0">
             <table class="w-full text-left text-sm text-slate-600">
-                <thead class="bg-slate-50 text-xs uppercase font-medium text-slate-500 sticky top-0">
+                <thead class="bg-slate-50 text-xs uppercase font-medium text-slate-500 sticky top-0 z-10 shadow-sm">
                     <tr>
-                        <th class="px-6 py-3">Nome</th>
-                        <th class="px-6 py-3">Contatti</th>
-                        <th class="px-6 py-3 text-right">Azioni</th>
+                        <th class="px-6 py-3 bg-slate-50">Nome</th>
+                        <th class="px-6 py-3 bg-slate-50">Contatti</th>
+                        <th class="px-6 py-3 bg-slate-50 text-right">Azioni</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for c in companies %}
-                    <tr class="hover:bg-slate-50 group">
+                    <tr class="hover:bg-slate-50 group transition-colors">
                         <td class="px-6 py-3">
-                            <div class="font-medium text-slate-800">{{ c.name }}</div>
-                            <a href="{{ c.website }}" target="_blank" class="text-xs text-blue-500 hover:underline">{{
-                                c.website }}</a>
+                            <div class="font-bold text-slate-800">{{ c.name }}</div>
+                            {% if c.website %}
+                            <a href="{{ c.website }}" target="_blank" class="text-xs text-blue-500 hover:underline flex items-center mt-1">
+                                <i class="fa-solid fa-link mr-1 text-[10px]"></i> {{ c.website }}
+                            </a>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-3 text-xs">
-                            {% if c.email %}<div><i class="fa-solid fa-envelope w-4"></i> {{ c.email }}</div>{% endif %}
-                            {% if c.phone %}<div><i class="fa-solid fa-phone w-4"></i> {{ c.phone }}</div>{% endif %}
+                        <td class="px-6 py-3 text-xs space-y-1">
+                            {% if c.email %}
+                            <div class="flex items-center text-slate-500">
+                                <i class="fa-solid fa-envelope w-4 text-center mr-1 text-slate-400"></i> {{ c.email }}
+                            </div>
+                            {% endif %}
+                            {% if c.phone %}
+                            <div class="flex items-center text-slate-500">
+                                <i class="fa-solid fa-phone w-4 text-center mr-1 text-slate-400"></i> {{ c.phone }}
+                            </div>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-3 text-right space-x-2">
-                            <a href="/admin/ingest?manufacturer_id={{ c.id }}" title="Carica Materiale"
-                                class="text-xs bg-purple-100 text-purple-700 px-2 py-1.5 rounded hover:bg-purple-200 transition-colors">
-                                <i class="fa-solid fa-upload"></i>
-                            </a>
-                            <a href="/admin/manufacturers?edit_id={{ c.id }}" title="Modifica"
-                                class="text-xs bg-orange-100 text-orange-700 px-2 py-1.5 rounded hover:bg-orange-200 transition-colors">
-                                <i class="fa-solid fa-pencil"></i>
-                            </a>
-                            <a href="/admin/manufacturers/delete/{{ c.id }}"
-                                onclick="return confirm('Sei sicuro? Se elimini il produttore potresti causare errori ai materiali collegati.')"
-                                title="Elimina"
-                                class="text-xs bg-red-100 text-red-700 px-2 py-1.5 rounded hover:bg-red-200 transition-colors">
-                                <i class="fa-solid fa-trash"></i>
-                            </a>
+                        <td class="px-6 py-3 text-right">
+                            <div class="flex justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <a href="/admin/ingest?manufacturer_id={{ c.id }}" title="Carica Materiale"
+                                    class="text-xs bg-purple-50 text-purple-700 border border-purple-100 px-2 py-1.5 rounded hover:bg-purple-100 transition-colors">
+                                    <i class="fa-solid fa-upload"></i>
+                                </a>
+                                <a href="/admin/manufacturers?edit_id={{ c.id }}" title="Modifica"
+                                    class="text-xs bg-orange-50 text-orange-700 border border-orange-100 px-2 py-1.5 rounded hover:bg-orange-100 transition-colors">
+                                    <i class="fa-solid fa-pencil"></i>
+                                </a>
+                                <a href="/admin/manufacturers/delete/{{ c.id }}"
+                                    onclick="return confirm('Sei sicuro? Se elimini il produttore potresti causare errori ai materiali collegati.')"
+                                    title="Elimina"
+                                    class="text-xs bg-red-50 text-red-700 border border-red-100 px-2 py-1.5 rounded hover:bg-red-100 transition-colors">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
