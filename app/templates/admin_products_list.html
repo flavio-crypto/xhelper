@@ -6,59 +6,49 @@
 <div class="flex flex-col h-[calc(100vh-140px)]">
     
     <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-4">
-        <form method="get" action="/admin/products" class="flex flex-col md:flex-row gap-4 items-end">
+        <div class="flex flex-col md:flex-row gap-4 items-end justify-between">
             
-            <div class="flex-1 w-full">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Azienda</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-building"></i>
-                    </span>
-                    <input type="text" name="search_company" value="{{ search_company or '' }}" placeholder="Es. Mapei..." 
-                           class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            <form method="get" action="/admin/products" class="flex flex-col md:flex-row gap-4 items-end flex-1 w-full md:w-auto">
+                <div class="flex-1 w-full md:max-w-xs">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Azienda</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-building"></i></span>
+                        <input type="text" name="search_company" value="{{ search_company or '' }}" placeholder="Es. Mapei..." 
+                               class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex-1 w-full">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome o Descrizione</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-cube"></i>
-                    </span>
-                    <input type="text" name="search_product" value="{{ search_product or '' }}" placeholder="Es. Adesivo..." 
-                           class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                <div class="flex-1 w-full md:max-w-xs">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome / Descrizione</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-cube"></i></span>
+                        <input type="text" name="search_product" value="{{ search_product or '' }}" placeholder="Es. Adesivo..." 
+                               class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex-1 w-full">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Categoria</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-tag"></i>
-                    </span>
-                    <input type="text" name="search_category" value="{{ search_category or '' }}" placeholder="Es. Isolanti..." 
-                           class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                <div class="flex gap-2">
+                    <button type="submit" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg h-[38px]">
+                        <i class="fa-solid fa-filter"></i>
+                    </button>
+                    {% if search_company or search_product or search_category %}
+                    <a href="/admin/products" class="bg-white text-red-500 border border-red-200 px-3 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors h-[38px] flex items-center">
+                        <i class="fa-solid fa-times"></i>
+                    </a>
+                    {% endif %}
                 </div>
-            </div>
+            </form>
 
-            <div class="flex gap-2">
-                <button type="submit" class="bg-slate-800 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg flex items-center h-[38px]">
-                    <i class="fa-solid fa-filter mr-2"></i> Filtra
+            <div class="flex items-center gap-3">
+                <button id="btnBulkDelete" onclick="submitBulkDelete()" class="hidden bg-red-100 text-red-700 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition-colors items-center shadow-sm">
+                    <i class="fa-solid fa-trash-can mr-2"></i> Elimina (<span id="selectedCount">0</span>)
                 </button>
-                
-                {% if search_company or search_product or search_category %}
-                <a href="/admin/products" class="bg-white text-red-500 border border-red-200 px-3 py-2 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors flex items-center justify-center h-[38px]" title="Resetta Filtri">
-                    <i class="fa-solid fa-times"></i>
-                </a>
-                {% endif %}
-            </div>
-        </form>
-    </div>
 
-    <div class="flex justify-end mb-2">
-         <a href="/admin/ingest" class="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center bg-brand-50 px-3 py-1 rounded-full border border-brand-100 hover:border-brand-300 transition-all">
-            <i class="fa-solid fa-magic mr-2"></i> Aggiungi con AI
-        </a>
+                <a href="/admin/ingest" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center font-bold text-sm">
+                    <i class="fa-solid fa-plus mr-2"></i> Nuovo Materiale
+                </a>
+            </div>
+        </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
@@ -66,6 +56,9 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
                     <tr>
+                        <th class="px-4 py-3 border-b border-slate-200 w-10 text-center">
+                            <input type="checkbox" id="selectAll" class="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500 cursor-pointer">
+                        </th>
                         <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Prodotto</th>
                         <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Produttore</th>
                         <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Categoria</th>
@@ -76,6 +69,9 @@
                 <tbody class="divide-y divide-slate-100">
                     {% for p in products %}
                     <tr class="hover:bg-slate-50 transition-colors group">
+                        <td class="px-4 py-3 text-center">
+                            <input type="checkbox" name="product_ids" value="{{ p.id }}" class="row-checkbox w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500 cursor-pointer">
+                        </td>
                         <td class="px-6 py-3">
                             <div class="font-bold text-slate-800">{{ p.name }}</div>
                             <div class="text-xs text-slate-400 truncate max-w-xs">{{ p.description or '' }}</div>
@@ -94,23 +90,15 @@
                         <td class="px-6 py-3 text-center">
                             <div class="flex justify-center space-x-1">
                                 {% if p.epd_file_path or p.epd_url %}
-                                <span class="w-6 h-6 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs border border-green-200" title="EPD Presente">
-                                    <i class="fa-solid fa-leaf"></i>
-                                </span>
+                                <span class="w-6 h-6 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs border border-green-200" title="EPD Presente"><i class="fa-solid fa-leaf"></i></span>
                                 {% else %}
-                                <span class="w-6 h-6 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-xs border border-slate-100 opacity-50">
-                                    <i class="fa-solid fa-leaf"></i>
-                                </span>
+                                <span class="w-6 h-6 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-xs border border-slate-100 opacity-50"><i class="fa-solid fa-leaf"></i></span>
                                 {% endif %}
-
+                                
                                 {% if p.tech_file_path or p.url_technical_sheet %}
-                                <span class="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs border border-blue-200" title="Scheda Tecnica Presente">
-                                    <i class="fa-solid fa-file-lines"></i>
-                                </span>
+                                <span class="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs border border-blue-200" title="Scheda Tecnica Presente"><i class="fa-solid fa-file-lines"></i></span>
                                 {% else %}
-                                <span class="w-6 h-6 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-xs border border-slate-100 opacity-50">
-                                    <i class="fa-solid fa-file-lines"></i>
-                                </span>
+                                <span class="w-6 h-6 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-xs border border-slate-100 opacity-50"><i class="fa-solid fa-file-lines"></i></span>
                                 {% endif %}
                             </div>
                         </td>
@@ -122,12 +110,8 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                            <div class="flex flex-col items-center">
-                                <i class="fa-solid fa-filter text-4xl mb-3 opacity-30"></i>
-                                <p class="font-medium">Nessun risultato con questi filtri.</p>
-                                <p class="text-xs mt-1">Prova a rimuovere qualche criterio.</p>
-                            </div>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                            Nessun prodotto trovato.
                         </td>
                     </tr>
                     {% endfor %}
@@ -137,39 +121,79 @@
 
         {% if total_pages > 1 %}
         <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex items-center justify-between shadow-inner">
-            <div class="text-xs text-slate-500">
-                <span class="font-bold text-slate-700">{{ total_items }}</span> risultati
-            </div>
-            
+            <div class="text-xs text-slate-500"><span class="font-bold text-slate-700">{{ total_items }}</span> risultati</div>
             <div class="flex items-center space-x-1">
                 {% if page > 1 %}
-                <a href="/admin/products?page={{ page - 1 }}&search_company={{ search_company }}&search_product={{ search_product }}&search_category={{ search_category }}" 
-                   class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-brand-600 transition-colors shadow-sm">
-                   <i class="fa-solid fa-chevron-left mr-1"></i>
-                </a>
-                {% else %}
-                <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-400 cursor-not-allowed">
-                   <i class="fa-solid fa-chevron-left mr-1"></i>
-                </span>
+                <a href="/admin/products?page={{ page - 1 }}&search_company={{ search_company }}&search_product={{ search_product }}" class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-600 hover:bg-slate-100"><i class="fa-solid fa-chevron-left"></i></a>
                 {% endif %}
-
-                <span class="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-md mx-1 shadow-sm">
-                    {{ page }} / {{ total_pages }}
-                </span>
-
+                <span class="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-md mx-1 shadow-sm">{{ page }} / {{ total_pages }}</span>
                 {% if page < total_pages %}
-                <a href="/admin/products?page={{ page + 1 }}&search_company={{ search_company }}&search_product={{ search_product }}&search_category={{ search_category }}" 
-                   class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-brand-600 transition-colors shadow-sm">
-                   <i class="fa-solid fa-chevron-right ml-1"></i>
-                </a>
-                {% else %}
-                <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-md text-xs font-medium text-slate-400 cursor-not-allowed">
-                   <i class="fa-solid fa-chevron-right ml-1"></i>
-                </span>
+                <a href="/admin/products?page={{ page + 1 }}&search_company={{ search_company }}&search_product={{ search_product }}" class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-600 hover:bg-slate-100"><i class="fa-solid fa-chevron-right"></i></a>
                 {% endif %}
             </div>
         </div>
         {% endif %}
     </div>
 </div>
+
+<script>
+    const selectAllDetails = document.getElementById('selectAll');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const btnBulkDelete = document.getElementById('btnBulkDelete');
+    const selectedCountSpan = document.getElementById('selectedCount');
+
+    // Funzione per aggiornare stato bottone
+    function updateBulkUI() {
+        const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+        selectedCountSpan.textContent = checkedCount;
+        
+        if (checkedCount > 0) {
+            btnBulkDelete.classList.remove('hidden');
+            btnBulkDelete.classList.add('flex');
+        } else {
+            btnBulkDelete.classList.add('hidden');
+            btnBulkDelete.classList.remove('flex');
+        }
+    }
+
+    // Evento Master Checkbox
+    selectAllDetails.addEventListener('change', function() {
+        rowCheckboxes.forEach(cb => {
+            cb.checked = this.checked;
+        });
+        updateBulkUI();
+    });
+
+    // Eventi Singole Checkbox
+    rowCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateBulkUI);
+    });
+
+    // Funzione Invio Cancellazione
+    function submitBulkDelete() {
+        const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) return;
+
+        if (!confirm(`Sei sicuro di voler eliminare definitivamente ${selectedIds.length} prodotti? Questa azione è irreversibile.`)) {
+            return;
+        }
+
+        // Creiamo un form temporaneo per inviare i dati via POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/products/bulk-delete';
+
+        selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'product_ids';
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
 {% endblock %}

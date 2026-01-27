@@ -658,3 +658,21 @@ async def copy_doc_data(
     
     # Ricarichiamo la pagina
     return RedirectResponse(f"/admin/products/{target_id}", status_code=302)
+
+    # Aggiungi questa funzione in app/main.py
+
+@app.post("/admin/products/bulk-delete")
+async def bulk_delete_products(request: Request, product_ids: list[str] = Form(...)):
+    user = get_current_user(request)
+    if not user: return RedirectResponse("/")
+    
+    try:
+        # Cancellazione massiva usando il filtro .in_()
+        supabase.table("products").delete().in_("id", product_ids).execute()
+        return RedirectResponse("/admin/products", status_code=302)
+        
+    except Exception as e:
+        print(f"Errore eliminazione massiva: {e}")
+        # In caso di errore (es. integrità referenziale), ricarichiamo la pagina con errore
+        # Nota: per semplicità facciamo redirect, ma l'ideale sarebbe passare l'errore come query param
+        return RedirectResponse("/admin/products?error=bulk_delete_error", status_code=302)
