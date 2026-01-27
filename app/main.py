@@ -388,13 +388,21 @@ async def admin_product_save(
     category: str = Form(...),
     description: str = Form(""),
     url_technical_sheet: str = Form(""),
+    
+    # EPD
     epd_url: str = Form(None),
     epd_expiration: str = Form(None),
+    epd_type: str = Form(None), # <--- NUOVO CAMPO
+    
+    # Emissioni
     emission_url: str = Form(None),
     emission_expiration: str = Form(None),
+    
+    # Flags
     is_validated: str = Form("false"),
     is_recycled: str = Form("false"),
-    # Parametri LEED (Match con lo schema del DB)
+    
+    # Compliance LEED (Tabella Separata)
     leed_v4: str = Form("false"),
     leed_v41: str = Form("false"),
     leed_v5: str = Form("false")
@@ -409,10 +417,15 @@ async def admin_product_save(
         "category": category,
         "description": description,
         "url_technical_sheet": url_technical_sheet,
+        
+        # Gestione EPD
         "epd_url": epd_url or None,
         "epd_expiration": epd_expiration or None,
+        "epd_type": epd_type or None, # <--- Salvataggio tipo
+        
         "emission_url": emission_url or None,
         "emission_expiration": emission_expiration or None,
+        
         "is_validated": True if is_validated == 'true' else False,
         "is_recycled": True if is_recycled == 'true' else False,
     }
@@ -424,8 +437,7 @@ async def admin_product_save(
         res = supabase.table("products").insert(prod_data).execute()
         product_id = res.data[0]['id']
 
-    # 2. Aggiornamento Tabella EMISSION_PRODUCTS
-    # Controlliamo se esiste già una riga per questo prodotto
+    # 2. Aggiornamento Tabella EMISSION_PRODUCTS (Compliance)
     existing_check = supabase.table("emission_products").select("id").eq("product_id", product_id).execute()
     
     emission_payload = {
@@ -435,17 +447,15 @@ async def admin_product_save(
     }
 
     if existing_check.data:
-        # Se esiste, aggiorniamo quella riga specifica
         row_id = existing_check.data[0]['id']
         supabase.table("emission_products").update(emission_payload).eq("id", row_id).execute()
     else:
-        # Se non esiste, la creiamo
         emission_payload["product_id"] = product_id
         supabase.table("emission_products").insert(emission_payload).execute()
 
     return RedirectResponse(f"/admin/products/{product_id}", status_code=302)
-    
-    return RedirectResponse(f"/admin/products/{id}", status_code=302)
+
+
 @app.get("/admin/products/delete/{product_id}")
 async def admin_product_delete(request: Request, product_id: str):
     user = get_current_user(request)
@@ -454,6 +464,8 @@ async def admin_product_delete(request: Request, product_id: str):
     return RedirectResponse("/admin/products", status_code=302)
 
     # --- ROTTE PER I CREDITI LEED (AGGIUNTE) ---
+
+# In app/main.py
 
 @app.post("/projects/{project_id}/credits/mr_epd/search", response_class=HTMLResponse)
 async def search_credit_mr_epd(
@@ -466,13 +478,26 @@ async def search_credit_mr_epd(
     user = get_current_user(request)
     if not user: return HTMLResponse("Sessione scaduta", status_code=403)
     
-    # Usiamo la nuova funzione di ricerca sui PRODUCTS
-    from app.database import search_products_db
-    results = search_products_db(category, epd_type, search_text)
+    from app.database import search_products_db, get_project_materials
+    
+    # 1. Recuperiamo i materiali GIÀ assegnati a questo credito
+    assigned_data = get_project_materials(project_id, "MR_EPD")
+    
+    # 2. Creiamo la lista degli ID da escludere (Blacklist)
+    # Nota: assigned_data restituisce righe con dentro l'oggetto 'products' popolato
+    excluded_ids = []
+    if assigned_data:
+        for row in assigned_data:
+            # Controllo di sicurezza se products esiste
+            if row.get('products') and row['products'].get('id'):
+                excluded_ids.append(row['products']['id'])
+    
+    # 3. Cerchiamo nel DB passando la blacklist
+    results = search_products_db(category, epd_type, search_text, exclude_ids=excluded_ids)
     
     return templates.TemplateResponse("partials/material_results_list.html", {
         "request": request,
-        "materials": results, # Passiamo i risultati al template parziale
+        "materials": results, 
         "active_project_id": project_id
     })
 
@@ -480,17 +505,43 @@ async def search_credit_mr_epd(
 async def assign_credit_mr_epd(
     request: Request, 
     project_id: str,
-    material_id: str = Form(...),
-    epd_id: str = Form(None)
+    material_id: str = Form(...)
 ):
     user = get_current_user(request)
     if not user: return HTMLResponse("Errore auth", status_code=403)
     
-    from app.database import assign_material_to_project
-    # Nota: material_id qui corrisponde all'ID della tabella products
+    from app.database import assign_material_to_project, get_project_materials
+    
+    # 1. Eseguiamo l'assegnazione
     assign_material_to_project(project_id, material_id, "MR_EPD")
     
-    return HTMLResponse('<button class="text-green-600 border border-green-200 bg-green-50 px-3 py-1.5 rounded-lg text-xs font-bold cursor-default"><i class="fa-solid fa-check"></i> Aggiunto</button>')
+    # 2. Recuperiamo la lista aggiornata
+    updated_list = get_project_materials(project_id, "MR_EPD")
+    
+    # 3. Restituiamo il partial della lista aggiornata
+    return templates.TemplateResponse("partials/project_materials_list.html", {
+        "request": request,
+        "assigned_materials": updated_list,
+        "active_project_id": project_id
+    })
+
+@app.delete("/projects/{project_id}/credits/mr_epd/remove/{assignment_id}")
+async def remove_credit_material(
+    request: Request,
+    project_id: str,
+    assignment_id: str
+):
+    user = get_current_user(request)
+    if not user: return HTMLResponse("Errore auth", status_code=403)
+    
+    from app.database import remove_material_from_project
+    
+    # 1. Cancelliamo
+    remove_material_from_project(assignment_id)
+    
+    # 2. Restituiamo niente (o la lista aggiornata se vogliamo ridisegnare tutto)
+    # Con HTMX, se restituiamo vuoto, l'elemento target sparisce.
+    return HTMLResponse("")
 
 # --- ALTRE ROTTE LEGACY ---
 @app.get("/admin/ingest", response_class=HTMLResponse)
@@ -504,10 +555,24 @@ async def admin_ingest_page(request: Request, manufacturer_id: str):
 async def view_credit_mr_epd(request: Request, project_id: str):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
+    
     project = get_project_by_id(project_id)
+    
+    # Recuperiamo le categorie per il filtro
     res_cats = supabase.table("products").select("category").execute()
     categories = sorted(list(set([row['category'] for row in res_cats.data if row['category']])))
-    return templates.TemplateResponse("credits/mr_epd.html", {"request": request, "user": user, "active_project": project, "categories": categories})
+    
+    # Recuperiamo i materiali GIÀ assegnati a questo credito
+    from app.database import get_project_materials
+    assigned_materials = get_project_materials(project_id, "MR_EPD")
+
+    return templates.TemplateResponse("credits/mr_epd.html", {
+        "request": request, 
+        "user": user, 
+        "active_project": project, 
+        "categories": categories,
+        "assigned_materials": assigned_materials # Passiamo la lista al template
+    })
 
     # ... (altre rotte) ...
 

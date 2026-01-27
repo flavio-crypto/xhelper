@@ -1,84 +1,87 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto py-8">
+<div class="max-w-7xl mx-auto py-8 px-4">
 
     <div class="mb-8 flex items-center justify-between">
         <div>
             <h2 class="text-2xl font-bold text-slate-900">MR EPD: Option 1</h2>
-            <p class="text-slate-500 text-sm">Cerca nel database Fuller materiali conformi al credito MR</p>
+            <p class="text-slate-500 text-sm">Gestione materiali conformi per il progetto <span class="font-bold">{{ active_project.name }}</span></p>
         </div>
         <a href="/projects/{{ active_project.id }}" class="text-sm text-brand-600 hover:text-brand-800 font-medium">
             &larr; Torna al progetto
         </a>
     </div>
 
-    <div class="bg-white shadow-lg ring-1 ring-slate-900/5 rounded-xl p-6 mb-8">
-        <form hx-post="/projects/{{ active_project.id }}/credits/mr_epd/search" hx-target="#results-area"
-            hx-indicator="#loading">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white shadow-sm ring-1 ring-slate-900/5 rounded-xl p-6">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa-solid fa-magnifying-glass mr-2 text-brand-500"></i> Cerca nel Database
+                </h3>
+                
+                <form hx-post="/projects/{{ active_project.id }}/credits/mr_epd/search" 
+                      hx-target="#search-results-area"
+                      hx-indicator="#loading">
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                <div>
-                    <label class="block text-sm font-medium leading-6 text-slate-900 mb-2">Categoria</label>
-                    <select name="category"
-                        class="block w-full rounded-md border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-brand-600 sm:text-sm sm:leading-6 bg-slate-50">
-                        <option value="Tutte">Tutte le categorie</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat }}">{{ cat }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium leading-6 text-slate-900 mb-2">Tipologia EPD</label>
-                    <select name="epd_type"
-                        class="block w-full rounded-md border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-brand-600 sm:text-sm sm:leading-6 bg-slate-50">
-                        <option value="all">Tutti i tipi</option>
-                        <option value="3">Tipo III (Verificato III Parte)</option>
-                        <option value="2">Tipo II (Specifico Auto-dichiarato)</option>
-                        <option value="1">Tipo I (Settoriale)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium leading-6 text-slate-900 mb-2">Cerca</label>
-                    <div class="relative rounded-md shadow-sm">
-                        <input type="text" name="search_text"
-                            class="block w-full rounded-md border-0 py-2.5 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-600 sm:text-sm sm:leading-6"
-                            placeholder="Nome, descrizione o codice...">
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label>
+                            <select name="category" class="w-full rounded-lg border-slate-300 text-sm">
+                                <option value="Tutte">Tutte le categorie</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipologia EPD</label>
+                            <select name="epd_type" class="w-full rounded-lg border-slate-300 text-sm">
+                                <option value="all">Tutti i tipi</option>
+                                <option value="Industry-wide (generic) EPD">Industry-wide (generic) EPD</option>
+                                <option value="Product-specific Type III EPD with third-party certification">Product-specific Type III EPD (Certified)</option>
+                                <option value="Product-specific Type III EPD Internally Reviewed">Product-specific Type III EPD (Internal)</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cerca</label>
+                            <div class="relative">
+                                <input type="text" name="search_text" class="w-full rounded-lg border-slate-300 pl-3 pr-10 text-sm" placeholder="Nome prodotto...">
+                                <button type="submit" class="absolute right-2 top-1.5 text-slate-400 hover:text-brand-600">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </form>
+            </div>
+
+            <div id="loading" class="htmx-indicator flex justify-center py-4 hidden">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+            </div>
+
+            <div id="search-results-area" class="min-h-[200px]">
+                </div>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sticky top-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
+                    <h3 class="font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-list-check mr-2 text-blue-600"></i> Selezionati
+                    </h3>
+                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
+                        {{ assigned_materials|length }}
+                    </span>
+                </div>
+                
+                <div id="project-materials-container">
+                    {% include "partials/project_materials_list.html" %}
                 </div>
             </div>
-
-            <div class="mt-8 flex justify-end border-t border-slate-100 pt-4">
-                <button type="submit"
-                    class="bg-brand-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 transition-all flex items-center">
-                    <i class="fa-solid fa-filter mr-2"></i> Filtra Database
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <div id="loading" class="htmx-indicator flex justify-center py-10">
-        <div class="flex flex-col items-center">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600 mb-2"></div>
-            <span class="text-sm text-slate-500">Ricerca in corso...</span>
         </div>
-    </div>
 
-    <div id="results-area" class="bg-white shadow-sm ring-1 ring-slate-900/5 rounded-xl overflow-hidden min-h-[100px]">
-        <div class="p-12 text-center text-slate-400">
-            <div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-database text-3xl text-slate-300"></i>
-            </div>
-            <h3 class="text-slate-900 font-medium mb-1">Pronto alla ricerca</h3>
-            <p class="text-sm">Usa i filtri sopra per trovare i materiali.</p>
-        </div>
     </div>
-
 </div>
 {% endblock %}

@@ -40,9 +40,20 @@
 
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right pr-4">
                     <button
-                        class="bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:border-brand-300 px-4 py-1.5 rounded-lg transition-all text-xs font-bold shadow-sm"
+                        type="button"
+                        class="bg-white text-brand-600 border border-brand-200 hover:bg-brand-50 hover:border-brand-300 px-4 py-1.5 rounded-lg transition-all text-xs font-bold shadow-sm flex items-center ml-auto"
+                        
+                        {# 1. Manda la richiesta al server #}
                         hx-post="/projects/{{ active_project_id }}/credits/mr_epd/assign"
-                        hx-vals='{"material_id": "{{ mat.id }}"}'>
+                        hx-vals='{"material_id": "{{ mat.id }}"}'
+                        
+                        {# 2. Aggiorna la colonna di DESTRA (La lista degli assegnati) #}
+                        hx-target="#project-materials-container" 
+                        hx-swap="innerHTML"
+                        
+                        {# 3. NUOVO: Rimuove la riga corrente (SINISTRA) dopo il successo #}
+                        hx-on:htmx:after-request="if(event.detail.successful) this.closest('tr').remove()">
+                        
                         <i class="fa-solid fa-plus mr-1"></i> Aggiungi
                     </button>
                 </td>

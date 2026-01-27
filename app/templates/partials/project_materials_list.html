@@ -1,0 +1,41 @@
+<div id="assigned-materials-list" class="space-y-3">
+    {% if assigned_materials %}
+        {% for item in assigned_materials %}
+        <div class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow group animate-fade-in">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <i class="fa-solid fa-cube"></i>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm">{{ item.products.name }}</h4>
+                    <p class="text-xs text-slate-500">
+                        <i class="fa-solid fa-building mr-1"></i> {{ item.products.companies.name }} 
+                        <span class="mx-2">•</span> 
+                        <span class="bg-slate-100 px-2 py-0.5 rounded text-[10px]">{{ item.products.category }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="/admin/products/{{ item.products.id }}" target="_blank" class="text-slate-400 hover:text-blue-600 text-sm" title="Vedi Scheda">
+                    <i class="fa-solid fa-external-link-alt"></i>
+                </a>
+
+                <button hx-delete="/projects/{{ active_project.id or active_project_id }}/credits/mr_epd/remove/{{ item.id }}" 
+                        hx-target="closest div.animate-fade-in" 
+                        hx-swap="outerHTML"
+                        hx-confirm="Rimuovere questo materiale dal progetto?"
+                        class="text-slate-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+            <i class="fa-solid fa-basket-shopping text-2xl mb-2 opacity-50"></i>
+            <p class="text-sm">Nessun materiale assegnato a questo credito.</p>
+        </div>
+    {% endif %}
+</div>

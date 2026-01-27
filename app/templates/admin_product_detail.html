@@ -121,6 +121,27 @@
                 <div class="p-6 space-y-4">
                     
                     <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tipologia EPD</label>
+                        <div class="relative">
+                            <select name="epd_type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 outline-none appearance-none">
+                                <option value="" class="text-slate-400">-- Seleziona Tipo --</option>
+                                <option value="Industry-wide (generic) EPD" {% if product.epd_type == 'Industry-wide (generic) EPD' %}selected{% endif %}>
+                                    Industry-wide (generic) EPD
+                                </option>
+                                <option value="Product-specific Type III EPD with third-party certification" {% if product.epd_type == 'Product-specific Type III EPD with third-party certification' %}selected{% endif %}>
+                                    Product-specific Type III EPD (Certified)
+                                </option>
+                                <option value="Product-specific Type III EPD Internally Reviewed" {% if product.epd_type == 'Product-specific Type III EPD Internally Reviewed' %}selected{% endif %}>
+                                    Product-specific Type III EPD (Internal)
+                                </option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Link Web (URL)</label>
                         <div class="flex">
                             <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-sm">
