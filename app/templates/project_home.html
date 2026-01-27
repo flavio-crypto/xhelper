@@ -35,5 +35,20 @@
         </a>
 
     </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-8">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-slate-800 flex items-center">
+                <i class="fa-solid fa-leaf text-green-600 mr-2"></i> Materiali MR EPD
+            </h3>
+            <a href="/projects/{{ active_project.id }}/credits/mr_epd" 
+            class="text-xs bg-white border border-slate-300 px-3 py-1.5 rounded-lg font-bold text-slate-600 hover:text-brand-600 hover:border-brand-200 transition-colors">
+                <i class="fa-solid fa-pen-to-square mr-1"></i> Gestisci
+            </a>
+        </div>
+        
+        <div class="p-6">
+            {% include "partials/project_materials_list.html" %}
+        </div>
+    </div>
 </div>
 {% endblock %}

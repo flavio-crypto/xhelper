@@ -115,31 +115,42 @@ def get_project_by_id(project_id: str):
         print(f"❌ Errore recupero progetto {project_id}: {e}")
         return None
 
-def search_products_db(category: str, epd_type: Optional[str], search_text: str, exclude_ids: list[str] = None):
+def search_products_db(category: str, leed_version: str, search_text: str, exclude_ids: list[str] = None):
     """
-    Cerca prodotti per il credito MR EPD.
-    Applica filtri restrittivi: Solo validati, con EPD completa.
-    NUOVO: Accetta 'exclude_ids' per nascondere i prodotti già aggiunti.
+    Cerca prodotti per il credito MR EPD in base alla versione LEED.
     """
-    # Query base con join sull'azienda
+    # Query base
     query = supabase.table("products").select("*, companies(name)")
     
-    # --- 1. FILTRI DI BASE (REQUISITI DI VALIDITÀ) ---
+    # --- 1. FILTRI DI BASE (OBBLIGATORI PER TUTTI) ---
+    # Validato, EPD presente, Scadenza presente, Documento presente
     query = query.eq("is_validated", True)
     query = query.not_.is_("epd_type", "null")
     query = query.not_.is_("epd_expiration", "null")
     query = query.or_("epd_url.neq.null,epd_file_path.neq.null")
 
-    # --- 2. ESCLUSIONE MATERIALI GIÀ PRESENTI (NUOVO) ---
+    # --- 2. LOGICA VERSIONE LEED ---
+    if leed_version == "v4":
+        # LEED v4 è più restrittivo: accetta solo EPD Specifiche Certificate o Industry-wide.
+        # Esclude quelle "Internally Reviewed" (autodichiarate non certificate).
+        allowed_types = [
+            "Industry-wide (generic) EPD", 
+            "Product-specific Type III EPD with third-party certification"
+        ]
+        query = query.in_("epd_type", allowed_types)
+        
+    elif leed_version == "v4.1":
+        # LEED v4.1 accetta TUTTO purché sia un'EPD (anche le "Internally Reviewed").
+        # I filtri di base (not null) hanno già escluso chi non ha EPD.
+        pass 
+
+    # --- 3. ESCLUSIONE MATERIALI GIÀ PRESENTI ---
     if exclude_ids and len(exclude_ids) > 0:
         query = query.not_.in_("id", exclude_ids)
 
-    # --- 3. FILTRI UTENTE ---
+    # --- 4. ALTRI FILTRI UTENTE ---
     if category and category != "Tutte":
         query = query.eq("category", category)
-    
-    if epd_type and epd_type != "all":
-         query = query.eq("epd_type", epd_type)
     
     if search_text:
         or_condition = f"name.ilike.%{search_text}%,description.ilike.%{search_text}%"

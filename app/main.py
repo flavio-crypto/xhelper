@@ -105,9 +105,25 @@ async def create_new_project(request: Request, name: str = Form(...), location: 
 async def view_project(request: Request, project_id: str):
     user = get_current_user(request)
     if not user: return RedirectResponse("/")
+    
     project = get_project_by_id(project_id)
     if not project: raise HTTPException(status_code=404, detail="Progetto non trovato")
-    return templates.TemplateResponse("project_home.html", {"request": request, "user": user, "active_project": project})
+
+    # --- FIX: Recuperiamo i materiali assegnati al credito MR EPD ---
+    # Senza questa parte, la lista nel riquadro della dashboard rimane vuota
+    from app.database import get_project_materials
+    try:
+        assigned_materials = get_project_materials(project_id, "MR_EPD")
+    except Exception as e:
+        print(f"Errore recupero materiali: {e}")
+        assigned_materials = []
+
+    return templates.TemplateResponse("project_home.html", {
+        "request": request, 
+        "user": user, 
+        "active_project": project,
+        "assigned_materials": assigned_materials # <--- Passiamo i dati al template
+    })
 
 # --- GESTIONE PRODUTTORI ---
 @app.get("/admin/manufacturers", response_class=HTMLResponse)
@@ -472,7 +488,7 @@ async def search_credit_mr_epd(
     request: Request, 
     project_id: str,
     category: str = Form(...),
-    epd_type: str = Form(...),
+    leed_version: str = Form(...), # <--- Cambiato da epd_type a leed_version
     search_text: str = Form("")
 ):
     user = get_current_user(request)
@@ -480,20 +496,22 @@ async def search_credit_mr_epd(
     
     from app.database import search_products_db, get_project_materials
     
-    # 1. Recuperiamo i materiali GIÀ assegnati a questo credito
+    # 1. Recuperiamo i materiali GIÀ assegnati (Blacklist)
     assigned_data = get_project_materials(project_id, "MR_EPD")
     
-    # 2. Creiamo la lista degli ID da escludere (Blacklist)
-    # Nota: assigned_data restituisce righe con dentro l'oggetto 'products' popolato
     excluded_ids = []
     if assigned_data:
         for row in assigned_data:
-            # Controllo di sicurezza se products esiste
             if row.get('products') and row['products'].get('id'):
                 excluded_ids.append(row['products']['id'])
     
-    # 3. Cerchiamo nel DB passando la blacklist
-    results = search_products_db(category, epd_type, search_text, exclude_ids=excluded_ids)
+    # 2. Cerchiamo nel DB passando la versione LEED
+    results = search_products_db(
+        category=category, 
+        leed_version=leed_version, # <--- Passiamo il nuovo parametro
+        search_text=search_text, 
+        exclude_ids=excluded_ids
+    )
     
     return templates.TemplateResponse("partials/material_results_list.html", {
         "request": request,
@@ -525,6 +543,9 @@ async def assign_credit_mr_epd(
         "active_project_id": project_id
     })
 
+
+# Incolla in app/main.py se non c'è già
+
 @app.delete("/projects/{project_id}/credits/mr_epd/remove/{assignment_id}")
 async def remove_credit_material(
     request: Request,
@@ -536,11 +557,10 @@ async def remove_credit_material(
     
     from app.database import remove_material_from_project
     
-    # 1. Cancelliamo
+    # Cancelliamo la riga
     remove_material_from_project(assignment_id)
     
-    # 2. Restituiamo niente (o la lista aggiornata se vogliamo ridisegnare tutto)
-    # Con HTMX, se restituiamo vuoto, l'elemento target sparisce.
+    # Restituiamo stringa vuota per rimuovere l'elemento HTML dalla pagina
     return HTMLResponse("")
 
 # --- ALTRE ROTTE LEGACY ---
