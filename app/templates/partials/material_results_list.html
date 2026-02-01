@@ -1,41 +1,42 @@
-{% if materials %}
-<div class="overflow-x-auto rounded-lg border border-slate-200">
+<div class="overflow-hidden bg-white shadow-sm ring-1 ring-slate-900/5 rounded-xl">
+    {% if materials %}
     <table class="min-w-full divide-y divide-slate-200">
         <thead class="bg-slate-50">
             <tr>
-                <th class="py-3 pl-4 text-left text-xs font-bold uppercase text-slate-500">Produttore</th>
-                <th class="px-3 py-3 text-left text-xs font-bold uppercase text-slate-500">Materiale</th>
-                <th class="px-3 py-3 text-left text-xs font-bold uppercase text-slate-500">Stato EPD</th>
-                <th class="px-3 py-3 text-right text-xs font-bold uppercase text-slate-500">Azioni</th>
+                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:pl-6">Prodotto</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Produttore</th>
+                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <span class="sr-only">Azioni</span>
+                </th>
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 bg-white">
             {% for mat in materials %}
-            <tr class="hover:bg-slate-50 transition-colors">
-                <td class="whitespace-nowrap py-4 pl-4 text-sm font-medium text-brand-600">
-                    {{ mat.companies.name }}
+            <tr class="hover:bg-slate-50 transition-colors group">
+                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                    <div class="flex items-center">
+                        <div class="h-10 w-10 flex-shrink-0 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100">
+                            <i class="fa-solid fa-leaf"></i>
+                        </div>
+                        <div class="ml-4">
+                            <div class="font-bold text-slate-900">{{ mat.name }}</div>
+                            <div class="text-xs text-slate-500 mb-1">{{ mat.category or 'N.D.' }}</div>
+                            
+                            {% if mat.epd_type %}
+                            <div class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 mt-1">
+                                <i class="fa-solid fa-certificate mr-1.5 opacity-70"></i>
+                                {{ mat.epd_type }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </td>
-
-                <td class="px-3 py-4 text-sm text-slate-500">
-                    <div class="font-bold text-slate-900">{{ mat.name }}</div>
-                    <div class="text-xs text-slate-400 mt-1 max-w-xs truncate">{{ mat.category }}</div>
-                </td>
-
+                
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
-                    {% if mat.epd_url or mat.epd_file_path %}
-                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 border border-green-200">
-                            <i class="fa-solid fa-check-circle mr-1"></i> EPD Presente
-                        </span>
-                        {% if mat.epd_file_path %}
-                        <a href="{{ mat.epd_file_path }}" target="_blank" class="text-xs text-blue-500 hover:underline ml-1">(File)</a>
-                        {% elif mat.epd_url %}
-                        <a href="{{ mat.epd_url }}" target="_blank" class="text-xs text-blue-500 hover:underline ml-1">(Link)</a>
-                        {% endif %}
-                    {% else %}
-                        <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500 border border-slate-200">
-                            Mancante
-                        </span>
-                    {% endif %}
+                    <div class="flex items-center">
+                        <i class="fa-regular fa-building mr-2 text-slate-400"></i>
+                        <span class="font-medium">{{ mat.companies.name }}</span>
+                    </div>
                 </td>
 
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-right pr-4">
@@ -51,7 +52,7 @@
                         hx-target="#project-materials-container" 
                         hx-swap="innerHTML"
                         
-                        {# 3. NUOVO: Rimuove la riga corrente (SINISTRA) dopo il successo #}
+                        {# 3. Rimuove la riga corrente (SINISTRA) dopo il successo #}
                         hx-on:htmx:after-request="if(event.detail.successful) this.closest('tr').remove()">
                         
                         <i class="fa-solid fa-plus mr-1"></i> Aggiungi
@@ -61,11 +62,13 @@
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-4">
+            <i class="fa-solid fa-magnifying-glass text-slate-400 text-lg"></i>
+        </div>
+        <h3 class="mt-2 text-sm font-semibold text-slate-900">Nessun materiale trovato</h3>
+        <p class="mt-1 text-sm text-slate-500">Prova a modificare i filtri o i termini di ricerca.</p>
+    </div>
+    {% endif %}
 </div>
-{% else %}
-<div class="p-8 text-center bg-white rounded-xl border border-dashed border-slate-300 mt-4">
-    <div class="text-slate-300 text-4xl mb-3"><i class="fa-solid fa-box-open"></i></div>
-    <h3 class="text-sm font-bold text-slate-600">Nessun materiale trovato</h3>
-    <p class="text-xs text-slate-400 mt-1">Prova a cambiare i filtri o cerca un altro termine.</p>
-</div>
-{% endif %}

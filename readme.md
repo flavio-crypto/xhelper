@@ -57,4 +57,9 @@
 Per avviare il server di sviluppo sulla porta **8080** con ricaricamento automatico:
 
 ```bash
-uvicorn app.main:app --reload --port 8080
+uvicorn app.main:app --host 0.0.0.0 --port 8080
+export OLLAMA_BASE_URL="http://127.0.0.1:8000"
+open-webui serve --port 3000
+
+git config --global user.name "flavio-crypto"
+git config --global user.email "flavio.stazi@fullerstp.it"

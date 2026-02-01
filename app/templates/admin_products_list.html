@@ -100,6 +100,12 @@
                                 {% else %}
                                 <span class="w-6 h-6 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-xs border border-slate-100 opacity-50"><i class="fa-solid fa-file-lines"></i></span>
                                 {% endif %}
+
+                                {% if p.emission_file_path or p.emission_url %}
+                                <span class="w-6 h-6 rounded bg-purple-100 text-purple-600 flex items-center justify-center text-xs border border-purple-200" title="Certificato Emissioni Presente"><i class="fa-solid fa-wind"></i></span>
+                                {% else %}
+                                <span class="w-6 h-6 rounded bg-slate-50 text-slate-300 flex items-center justify-center text-xs border border-slate-100 opacity-50"><i class="fa-solid fa-wind"></i></span>
+                                {% endif %}
                             </div>
                         </td>
                         <td class="px-6 py-3 text-right">
