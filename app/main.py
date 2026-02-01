@@ -125,6 +125,24 @@ async def view_project(request: Request, project_id: str):
         "assigned_materials": assigned_materials # <--- Passiamo i dati al template
     })
 
+# --- INCOLLA IN app/main.py (es. dopo la rotta view_project) ---
+
+@app.delete("/projects/{project_id}")
+async def delete_project(request: Request, project_id: str):
+    user = get_current_user(request)
+    if not user: return HTMLResponse("Non autorizzato", status_code=403)
+    
+    # Importiamo la funzione appena creata
+    from app.database import delete_project_db
+    
+    if delete_project_db(project_id):
+        # Restituisce stringa vuota: HTMX rimuoverà l'elemento HTML dalla pagina
+        return HTMLResponse("")
+    else:
+        return HTMLResponse("Impossibile eliminare il progetto", status_code=500)
+
+
+
 # --- GESTIONE PRODUTTORI ---
 @app.get("/admin/manufacturers", response_class=HTMLResponse)
 async def admin_manufacturers(request: Request, edit_id: str = None):

@@ -7,19 +7,37 @@
 
     {% if projects %}
     {% for p in projects %}
-    <a href="/projects/{{ p.id }}"
-        class="block bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg hover:border-brand-500 transition-all group">
-        <div class="flex justify-between items-start mb-4">
-            <div
-                class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
-                {{ p.name[0] | upper }}
+    <div class="bg-white border border-slate-200 rounded-xl hover:shadow-lg hover:border-brand-500 transition-all group flex flex-col justify-between">
+        
+        <a href="/projects/{{ p.id }}" class="p-6 block">
+            <div class="flex justify-between items-start mb-4">
+                <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">
+                    {{ p.name[0] | upper }}
+                </div>
+                <span class="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase">
+                    {{ p.protocol }}
+                </span>
             </div>
-            <span class="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase">{{ p.protocol
-                }}</span>
+            <h3 class="text-lg font-bold text-slate-800 mb-1 group-hover:text-brand-600">{{ p.name }}</h3>
+            <p class="text-sm text-slate-500"><i class="fa-solid fa-location-dot mr-1"></i> {{ p.location }}</p>
+        </a>
+
+        <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 rounded-b-xl flex justify-between items-center">
+            <a href="/projects/{{ p.id }}" class="text-xs font-bold text-slate-400 hover:text-brand-600 transition-colors">
+                Apri Progetto <i class="fa-solid fa-arrow-right ml-1"></i>
+            </a>
+            
+            <button hx-delete="/projects/{{ p.id }}"
+                    hx-confirm="Sei sicuro di voler eliminare definitivamente il progetto '{{ p.name }}'?"
+                    hx-target="closest div.bg-white" 
+                    hx-swap="outerHTML"
+                    class="text-slate-400 hover:text-red-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50"
+                    title="Elimina Progetto">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
         </div>
-        <h3 class="text-lg font-bold text-slate-800 mb-1 group-hover:text-brand-600">{{ p.name }}</h3>
-        <p class="text-sm text-slate-500"><i class="fa-solid fa-location-dot mr-1"></i> {{ p.location }}</p>
-    </a>
+
+    </div>
     {% endfor %}
     {% else %}
     <div class="col-span-3 text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">

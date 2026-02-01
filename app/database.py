@@ -159,3 +159,35 @@ def search_products_db(category: str, leed_version: str, search_text: str, exclu
     query = query.order("name")
     result = query.execute()
     return result.data
+
+    def delete_project_db(project_id: str):
+    """
+    Elimina un progetto e tutti i materiali associati.
+    """
+    try:
+        # 1. Elimina eventuali materiali assegnati al progetto
+        supabase.table("project_materials").delete().eq("project_id", project_id).execute()
+        
+        # 2. Elimina il progetto stesso
+        supabase.table("projects").delete().eq("id", project_id).execute()
+        return True
+    except Exception as e:
+        print(f"Errore eliminazione progetto {project_id}: {e}")
+        return False
+
+    # --- INCOLLA ALLA FINE DI app/database.py ---
+
+def delete_project_db(project_id: str):
+    """
+    Elimina un progetto e tutti i materiali associati.
+    """
+    try:
+        # 1. Elimina eventuali materiali assegnati al progetto
+        supabase.table("project_materials").delete().eq("project_id", project_id).execute()
+        
+        # 2. Elimina il progetto stesso
+        supabase.table("projects").delete().eq("id", project_id).execute()
+        return True
+    except Exception as e:
+        print(f"Errore eliminazione progetto {project_id}: {e}")
+        return False
